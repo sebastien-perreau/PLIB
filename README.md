@@ -50,14 +50,29 @@ s34_can | | | |
 s35_ethernet | | | | 
 
 #### High Level
-Name | Tested & Validated | Commented | Autonomous | Example
------|--------------------|-----------|------------|--------
-utilities | | | |
-string_advance | | | | 
-one_wire_communication | | | | 
-lin | | | | 
-ble | | | |  
+Name | Tested & Validated | Commented | Autonomous | Example | Dependencies
+-----|--------------------|-----------|------------|---------|-------------
+utilities | | | | | 
+string_advance | | | | | 
+one_wire_communication | | | | | 
+lin | | | | | 
+ble | | | | | 
 
+#### External Components
+Name | Tested & Validated | Commented | Autonomous | Example | Dependencies
+-----|--------------------|-----------|------------|---------|-------------
+eeprom | | | | | 
+mcp23s17 | | | | | 
+ws2812b | | | | | 
+qt2100 | | | | | 
+amis30621 | | | | | 
+tmc429 | | | | | 
+
+#### Experimental
+Name | Stable | Commented | Autonomous | Example | Dependencies
+-----|--------------------|-----------|------------|---------|-------------
+log | | | | | 
+s21_uart | | | | | 
 
 Release: PLIB_21809
 ----------------------------------------------------------------------
