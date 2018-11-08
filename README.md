@@ -1,6 +1,6 @@
 # PLIB_21811
 
-Prototype Library ver. November 18
+**Prototype Library ver. *November 18***
 
 ## HARDWARE BASED ON:
 
@@ -11,22 +11,52 @@ Target: ***SPCB*** - (**S**)tandard (**P**)rototype (**C**)alculator (**B**)oard
 - PICAdapter rev.D (*Prototype dev.*)
 
 
-## HOW TO USE IT:
+## HOW TO USE THE LIBRARY:
 
-1. Include the file "PLIB.h" into your project:/n
-		- In your project, open the file "config.h" and include PLIB.h
-		#include "../PLIB_21809/PLIB.h"
-		- Then add the file "PLIB.h" into your project. Right click on Header Files folder and Add Existing Item...
-		- Select "PLIB.h" to include it.
-2. Include the library into your project (2 ways)
-	2.1. Include the library project (code is open source)
-		- Right click on your project, Properties/Conf: [default]/Libraries
-		- Add Library Project... then select the last PLIB.X (last library project)
-		- Remove previous library version if present.
-	2.2. Include the compiled library (code is protected)
-		- Right click on your project, Properties/Conf: [default]/Libraries
-		- Add Library/Object File... then select the last PLIB.a (last compiled library)
-		- Remove previous library version if present.
+There are two ways to use the library in your project: 
+* Either by include it as a ***Library Project***.
+* Or by include the ***Pre-compiled*** library.
+
+In both cases, you have to include ***PLIB.h***, which includes all library's header file, in your project:
+* In your project, open **config.h** and at the top of the file, include the **PLIB.h** following the directory where it is stored. 
+* Now it is necessary to include the file **PLIB.h** in your **Header folder** project. Right click on the **Header folder** and click **Add Existing Item...**. Search and select the file to include it in your project.
+
+Now you have to include the library (either the **Library project** or the **Pre-compiled** library):
+
+#### 1. Library project
+* Right click on your **project --> Properties --> Conf: [default] --> Libraries**.
+* Click on **Add Library Project...** and select **PLIB.X** (*the MPLABX IDE library project*).
+* Remove previous library if present.
+
+#### 2. Pre-compiled library
+* Right click on your **project --> Properties --> Conf: [default] --> Libraries**.
+* Click on **Add Library/Object File...** and select **PLIB.a** (*the compiled library*).
+* Remove previous library if present.
+
+## LIBRARY STATUS
+
+#### Low Level
+Name | Tested & Validated | Commented | Autonomous | Example
+-----|--------------------|-----------|------------|--------
+s08_interrupt_mapping | | | |
+s12_ports | yes | yes | yes | yes
+s14_timers | yes | yes | yes | yes
+s16_output_compare | | | | 
+s17_adc | | | | 
+s21_uart | | | | 
+s23_spi | | | | 
+s24_i2c | | | | 
+s34_can | | | | 
+s35_ethernet | | | | 
+
+#### High Level
+Name | Tested & Validated | Commented | Autonomous | Example
+-----|--------------------|-----------|------------|--------
+utilities | | | |
+string_advance | | | | 
+one_wire_communication | | | | 
+lin | | | | 
+ble | | | |  
 
 
 Release: PLIB_21809
