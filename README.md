@@ -56,7 +56,7 @@ utilities | | | | |
 string_advance | | | | | 
 one_wire_communication | | | | | 
 lin | | | | | 
-ble | | | | | 
+ble | | | | | DMA2 & UART4
 
 #### External Components
 Name | Tested & Validated | Commented | Autonomous | Example | Dependencies
@@ -71,45 +71,5 @@ tmc429 | | | | |
 #### Experimental
 Name | Stable | Commented | Autonomous | Example | Dependencies
 -----|--------------------|-----------|------------|---------|-------------
-log | | | | | 
+log | | | | | DMA6 & UARTx
 s21_uart | | | | | 
-
-Release: PLIB_21809
-----------------------------------------------------------------------
-- Initiale release
-
-						 ________________
-						|		 |		Project Library (.x)
-						|   PLIB_xxxxx   |	as 		or
-						|________________|		Compiled Library (.a)
-								
-							|
-							|	(PLIB.h)
-							v
-						 ________________
-						|		 |	main.c / interrupt.c
-						|   User Prog.   |	config.h / config.c
-						|________________|	...	
-
-- The aim is to propose always a last version of a standard and centralized library.
-
-- Creation of a Library Project on MPLAB X containing all drivers dispose as follow:
-	+ _Experimental (folder)
-		Contains all experimental driver developements which need to be validated before being tidy in one of the three next folders. Also contains all _EXAMPLES when available.
-	+ _External_Components (folder)
-		Contains all external components driver developments such as eeprom, smart led, I/O expander... Each of these external components needs either a _High_Level_Driver or a _Low_Level_Driver to work.
-	+ _High_Level_Driver (folder)
-		Contains drivers which can use a _Low_Level_Driver such as LIN (UART), BLE (UART) or some other usefull functions integrated in "utilities" or "one_wire_communication".
-	+ _Low_Level_Driver (folder)
-		Contains drivers (registers level) for the PIC32MX795F512L peripherals. Each of these drivers are tidy by name (starting by "sxx_" where "xx" is the peripheral number - See datasheet on microchip website). 
-	defines.h (file)
-		Contains some usefull defines, macro and structures. This file is include in "PLIB.h" and should be accesible for the Prototype Library and for the User Program.
-	PLIB.h (file)
-		Contains all includes for each drivers store in the above folders.
-
-- Most of the drivers need to be (re)validated (because based on an old version).
-
-- What is new:
-	+ _High_Level_Driver/utilities
-		> SWITCH has been fully re-written. New definition, instance, structure and back_task operations.
-		> BUS_MANAGEMENT has been fully re-written. New definition, instance, structure and back_task operations.
