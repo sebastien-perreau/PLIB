@@ -61,7 +61,7 @@ ble | | | | | DMA2 & UART4
 #### External Components
 Name | Tested & Validated | Commented | Autonomous | Example | Dependencies
 -----|--------------------|-----------|------------|---------|-------------
-eeprom | | | | | 
+25lc512 | | | | | 
 mcp23s17 | | | | | 
 ws2812b | | | | | 
 qt2100 | | | | | 
