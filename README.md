@@ -38,7 +38,7 @@ Now you have to include the library (either the **Library project** or the **Pre
 #### Low Level
 Name | Tested & Validated | Commented | Autonomous | Example
 -----|--------------------|-----------|------------|--------
-s08_interrupt_mapping | | | |
+s08_interrupt_mapping | | | yes |
 s12_ports | yes | yes | yes | yes
 s14_timers | yes | yes | yes | yes
 s16_output_compare | | | | 
