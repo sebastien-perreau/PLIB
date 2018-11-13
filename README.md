@@ -70,5 +70,5 @@ tmc429 | | | | | SPI*x* & DMA*x*
 #### Experimental
 Name | Stable | Commented | Autonomous | Example | Dependencies
 -----|--------------------|-----------|------------|---------|-------------
-EXP_log | | | | | UART*x*, DMA*x*
+EXP_log | | | | | UART*x* & DMA*x*
 EXP_s21_uart | | | | | 
