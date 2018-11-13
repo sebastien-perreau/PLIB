@@ -18,8 +18,8 @@ There are two ways to use the library in your project:
 * Or by include the ***Pre-compiled*** library.
 
 In both cases, you have to include ***PLIB.h***, which includes all library's header file, in your project:
-* In your project, open **config.h** and at the top of the file, include the **PLIB.h** following the directory where it is stored. 
-* Now it is necessary to include the file **PLIB.h** in your **Header folder** project. Right click on the **Header folder** and click **Add Existing Item...**. Search and select the file to include it in your project.
+* In your project **BLANCK_PROJECT**, open **config.h** and at the top of the file, include the **PLIB.h** following the directory where it is stored. 
+* Then include the file **PLIB.h** in your **Header folder** project. Right click on the **Header folder** and **Add Existing Item...**. Search and select the file to include it in your project.
 
 Now you have to include the library (either the **Library project** or the **Pre-compiled** library):
 
@@ -43,7 +43,6 @@ s12_ports | yes | yes | yes | yes
 s14_timers | yes | yes | yes | yes
 s16_output_compare | | | | 
 s17_adc | | | | 
-s21_uart | | | | 
 s23_spi | | | | 
 s24_i2c | | | | 
 s34_can | | | | 
@@ -55,21 +54,21 @@ Name | Tested & Validated | Commented | Autonomous | Example | Dependencies
 utilities | | | | | 
 string_advance | | | | | 
 one_wire_communication | | | | | 
-lin | | | | | 
-ble | | | | | DMA2 & UART4
+lin | | | | | UART*2* & UART*5*
+ble | | | | | UART*4* & DMA*2*
 
 #### External Components
 Name | Tested & Validated | Commented | Autonomous | Example | Dependencies
 -----|--------------------|-----------|------------|---------|-------------
-25lc512 | | | | | 
-mcp23s17 | | | | | 
-ws2812b | | | | | 
-qt2100 | | | | | 
-amis30621 | | | | | 
-tmc429 | | | | | 
+25lc512 | | | | | SPI*x* & DMA*x*
+mcp23s17 | | | | | SPI*x* & DMA*x*
+ws2812b | | | | | SPI*x* & DMA*x*
+qt2100 | | | | | SPI*x* & DMA*x*
+amis30621 | | | | | LIN*2* & LIN*5*
+tmc429 | | | | | SPI*x* & DMA*x*
 
 #### Experimental
 Name | Stable | Commented | Autonomous | Example | Dependencies
 -----|--------------------|-----------|------------|---------|-------------
-log | | | | | DMA6 & UARTx
-s21_uart | | | | | 
+EXP_log | | | | | UART*x*, DMA*x*
+EXP_s21_uart | | | | | 
