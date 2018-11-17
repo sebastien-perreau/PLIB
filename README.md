@@ -35,40 +35,31 @@ Now you have to include the library (either the **Library project** or the **Pre
 
 ## LIBRARY STATUS
 
-#### Low Level
-Name | Tested & Validated | Commented | Autonomous | Example
------|--------------------|-----------|------------|--------
-s08_interrupt_mapping | yes | yes | yes |
-s12_ports | yes |  |  | 
-s14_timers | yes | yes | yes |
-s16_output_compare | | | | 
-s17_adc | | | | 
-s23_spi | | | | 
-s24_i2c | | | | 
-s34_can | | | | 
-s35_ethernet | | | | 
-
-#### High Level
 Name | Tested & Validated | Commented | Autonomous | Example | Dependencies
------|--------------------|-----------|------------|---------|-------------
-utilities | | | | | 
-string_advance | | | | | 
-one_wire_communication | | | | | 
-lin | | | | | UART*2* & UART*5*
-ble | | | | | UART*4* & DMA*2*
-
-#### External Components
-Name | Tested & Validated | Commented | Autonomous | Example | Dependencies
------|--------------------|-----------|------------|---------|-------------
-25lc512 | | | | | SPI*x* & DMA*x*
-mcp23s17 | | | | | SPI*x* & DMA*x*
-ws2812b | | | | | SPI*x* & DMA*x*
-qt2100 | | | | | SPI*x* & DMA*x*
-amis30621 | | | | | LIN*2* & LIN*5*
-tmc429 | | | | | SPI*x* & DMA*x*
-
-#### Experimental
-Name | Stable | Commented | Autonomous | Example | Dependencies
------|--------------------|-----------|------------|---------|-------------
-EXP_log | | | | | UART*x* & DMA*x*
-EXP_s21_uart | | | | | 
+ :--- | :---: | :---: | :---: | :---: | :---: 
+**Low Level** | | | | |
+*s08_interrupt_mapping* | yes | yes | yes | |
+*s12_ports* | yes |  |  |  |
+*s14_timers* | yes | yes | yes | |
+*s16_output_compare* | | | |  |
+*s17_adc* | | | | |
+*s23_spi* | | | | |
+*s24_i2c* | | | | |
+*s34_can* | | | | |
+*s35_ethernet* | | | | |
+**High Level** | | | | |
+*utilities* | | | | | 
+*string_advance* | | | | | 
+*one_wire_communication* | | | | | 
+*lin* | | | | | UART*2* & UART*5*
+*ble* | | | | | UART*4* & DMA*2*
+**External Components** | | | | |
+*25lc512* | | | | | SPI*x* & DMA*x*
+*mcp23s17* | | | | | SPI*x* & DMA*x*
+*ws2812b* | | | | | SPI*x* & DMA*x*
+*qt2100* | | | | | SPI*x* & DMA*x*
+*amis30621* | | | | | LIN*2* & LIN*5*
+*tmc429* | | | | | SPI*x* & DMA*x*
+**Experimental** | | | | |
+*EXP_log* | | | | | UART*x* & DMA*x*
+*EXP_s21_uart* | | | | | 
