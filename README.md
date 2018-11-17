@@ -48,11 +48,11 @@ Name | Validated | Commented | Autonomous | Example | Dependencies
 *s34_can* | | | | | T1
 *s35_ethernet* | | | | | T1
 **High Level** | ************ | ************ | ************ | ************ | ************
-*utilities* | | | | | 
+*utilities* | | | | | T1 & ADC
 *string_advance* | | | | | 
 *one_wire_communication* | | | | | 
-*lin* | | | | | UART*2* & UART*5*
-*ble* | | | | | UART*4* & DMA*2*
+*lin* | | | | | T4 & UART*2* & UART*5*
+*ble* | | | | | T1 & UART*4* & DMA*2*
 **External Components** | ************ | ************ | ************ | ************ | ************
 *25lc512* | | | | | SPI*x* & DMA*x*
 *mcp23s17* | | | | | SPI*x* & DMA*x*
