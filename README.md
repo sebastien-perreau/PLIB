@@ -35,7 +35,7 @@ Now you have to include the library (either the **Library project** or the **Pre
 
 ## LIBRARY STATUS
 
-Name | Tested & Validated | Commented | Autonomous | Example | Dependencies
+Name | Validated | Commented | Autonomous | Example | Dependencies
  :--- | :---: | :---: | :---: | :---: | :---: 
 **Low Level** | ************ | ************ | ************ | ************ | ************
 *s08_interrupt_mapping* | yes | yes | yes | |
