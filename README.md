@@ -41,12 +41,12 @@ Name | Validated | Commented | Autonomous | Example | Dependencies
 *s08_interrupt_mapping* | yes | yes | yes | |
 *s12_ports* | yes |  |  |  |
 *s14_timers* | yes | yes | yes | |
-*s16_output_compare* | | | |  |
+*s16_output_compare* | | | | | T2 & T3
 *s17_adc* | | | | |
-*s23_spi* | | | | |
-*s24_i2c* | | | | |
-*s34_can* | | | | |
-*s35_ethernet* | | | | |
+*s23_spi* | | | | | T1 & GPIO & \*DMAx
+*s24_i2c* | | | | | T1
+*s34_can* | | | | | T1
+*s35_ethernet* | | | | | T1
 **High Level** | ************ | ************ | ************ | ************ | ************
 *utilities* | | | | | 
 *string_advance* | | | | | 
