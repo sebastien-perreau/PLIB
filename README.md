@@ -13,24 +13,16 @@ Target: ***SPCB*** - (**S**)tandard (**P**)rototype (**C**)alculator (**B**)oard
 
 ## HOW TO USE THE LIBRARY:
 
-There are two ways to use the library in your project: 
-* Either by include it as a ***Library Project***.
-* Or by include the ***Pre-compiled*** library.
+Download the last PLIB project. It is a MPLAB X Library Project with gcc compilation parameters set to 3 (Optimize yet more favoring speed).
 
-In both cases, you have to include ***PLIB.h***, which includes all library's header file, in your project:
+First, you have to include ***PLIB.h***, which includes all library's header file, in your project:
 * In your project **BLANCK_PROJECT**, open **config.h** and at the top of the file, include the **PLIB.h** following the directory where it is stored. 
 * Then include the file **PLIB.h** in your **Header folder** project. Right click on the **Header folder** and **Add Existing Item...**. Search and select the file to include it in your project.
 
-Now you have to include the library (either the **Library project** or the **Pre-compiled** library):
+Now you have to include the **Library project** in your project:
 
-#### 1. Library project
 * Right click on your **project --> Properties --> Conf: [default] --> Libraries**.
 * Click on **Add Library Project...** and select **PLIB.X** (*the MPLABX IDE library project*).
-* Remove previous library if present.
-
-#### 2. Pre-compiled library
-* Right click on your **project --> Properties --> Conf: [default] --> Libraries**.
-* Click on **Add Library/Object File...** and select **PLIB.a** (*the compiled library*).
 * Remove previous library if present.
 
 ## LIBRARY STATUS
