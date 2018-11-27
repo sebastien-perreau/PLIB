@@ -35,31 +35,31 @@ Now you have to include the library (either the **Library project** or the **Pre
 
 ## LIBRARY STATUS
 
-Name | Validated | Commented | Autonomous | Example | Dependencies
- :--- | :---: | :---: | :---: | :---: | :---: 
-**Low Level** | ************ | ************ | ************ | ************ | ************
-*s08_interrupt_mapping* | yes | yes | yes | |
-*s12_ports* | yes |  |  |  |
-*s14_timers* | yes | yes | yes | |
-*s16_output_compare* | | | | | T2 & T3
-*s17_adc* | | | | |
-*s23_spi* | | | | | T1 & GPIO & \*DMAx
-*s24_i2c* | | | | | T1
-*s34_can* | | | | | T1
-*s35_ethernet* | | | | | T1
-**High Level** | ************ | ************ | ************ | ************ | ************
-*utilities* | | | | | T1 & ADC
-*string_advance* | | | | | 
-*one_wire_communication* | | | | | 
-*lin* | | | | | T4 & UART*2* & UART*5*
-*ble* | | | | | T1 & UART*4* & DMA*2*
-**External Components** | ************ | ************ | ************ | ************ | ************
-*25lc512* | | | | | SPI*x* & DMA*x*
-*mcp23s17* | | | | | SPI*x* & DMA*x*
-*ws2812b* | | | | | SPI*x* & DMA*x*
-*qt2100* | | | | | SPI*x* & DMA*x*
-*amis30621* | | | | | LIN*2* & LIN*5*
-*tmc429* | | | | | SPI*x* & DMA*x*
-**Experimental** | ************ | ************ | ************ | ************ | ************
-*EXP_log* | | | | | UART*x* & DMA*x*
-*EXP_s21_uart* | | | | | 
+Name | Validated | Commented | Autonomous | Example | Dependencies | IRQs
+ :--- | :---: | :---: | :---: | :---: | :---: | :---: 
+**Low Level** | ************ | ************ | ************ | ************ | ************ | ************
+*s08_interrupt_mapping* | yes | yes | yes | | |
+*s12_ports* | yes |  |  |  | |
+*s14_timers* | yes | yes | yes | | |
+*s16_output_compare* | | | | | T2 & T3 |
+*s17_adc* | | | | | |
+*s23_spi* | | | | | T1 & GPIO & \*DMAx |
+*s24_i2c* | | | | | T1 |
+*s34_can* | | | | | T1 |
+*s35_ethernet* | | | | | T1 |
+**High Level** | ************ | ************ | ************ | ************ | ************ | ************
+*utilities* | | | | | T1 & ADC | -
+*string_advance* | | | | | | -
+*one_wire_communication* | | | | | | -
+*lin* | | | | | T4 & UART*2* & UART*5* | T4 & UART_RX
+*ble* | | | | | T1 & UART*4* & DMA*2* | UART_RX & DMA_TX
+**External Components** | ************ | ************ | ************ | ************ | ************ | ************
+*25lc512* | | | | | SPI*x* & DMA*x* |
+*mcp23s17* | | | | | SPI*x* & DMA*x* |
+*ws2812b* | | | | | SPI*x* & DMA*x* |
+*qt2100* | | | | | SPI*x* & DMA*x* |
+*amis30621* | | | | | LIN*2* & LIN*5* |
+*tmc429* | | | | | SPI*x* & DMA*x* |
+**Experimental** | ************ | ************ | ************ | ************ | ************ | ************
+*EXP_log* | | | yes | yes | UART*x* & DMA*x* |
+*EXP_s21_uart* | | yes | yes | | |
