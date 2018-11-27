@@ -61,5 +61,5 @@ Name | Validated | Commented | Autonomous | Example | Dependencies | IRQs
 *amis30621* | | | | | LIN*2* & LIN*5* |
 *tmc429* | | | | | SPI*x* & DMA*x* |
 **Experimental** | ************ | ************ | ************ | ************ | ************ | ************
-*EXP_log* | | | yes | yes | UART*x* & DMA*x* |
-*EXP_s21_uart* | | yes | yes | | |
+*EXP_log* | | | yes | yes | UART*x* & DMA*x* | -
+*EXP_s21_uart* | | yes | yes | | | -
