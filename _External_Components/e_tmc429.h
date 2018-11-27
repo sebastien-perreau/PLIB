@@ -169,60 +169,87 @@ typedef enum
 
 typedef struct
 {
-    // Stepper motor registers
-    DWORD   x_target[3];
-    DWORD   x_actual[3];
-    DWORD   v_min[3];
-    DWORD   v_max[3];
-    DWORD   v_target[3];
-    DWORD   v_actual[3];
-    DWORD   a_max[3];
-    DWORD   a_actual[3];
-    DWORD   a_threshold[3];
-    DWORD   pmul_pdiv[3];
-    DWORD   refconf_rm[3];
-    DWORD   interrupt_mask_flag[3];
-    DWORD   pulse_ramp_usrs[3];
-    DWORD   dx_ref_tolerance[3];
-    DWORD   x_latched[3];
-    DWORD   ustep_count_429[3];
-    // Common registers
-    DWORD   datagram_low_word;
-    DWORD   datagram_high_word;
-    DWORD   cover_position_len;
-    DWORD   cover_datagram;
-    DWORD   if_configuration_429;
-    DWORD   pos_comp_429;
-    DWORD   im;
-    DWORD   power_down;
-    DWORD   type_version_429;
-    DWORD   switchs;
-    DWORD   smgp;   // Stepper Motor Global Parameter
-    // Default
-    DWORD   status;
-}TMC429_REGISTERS;
+    uint32_t   x_target;
+    uint32_t   x_actual;
+    uint32_t   v_min;
+    uint32_t   v_max;
+    uint32_t   v_target;
+    uint32_t   v_actual;
+    uint32_t   a_max;
+    uint32_t   a_actual;
+    uint32_t   a_threshold;
+    uint32_t   pmul_pdiv;
+    uint32_t   refconf_rm;
+    uint32_t   interrupt_mask_flag;
+    uint32_t   pulse_ramp_usrs;
+    uint32_t   dx_ref_tolerance;
+    uint32_t   x_latched;
+    uint32_t   ustep_count_429;
+} TMC429_STEPPER_REGISTERS;
 
 typedef struct
 {
-    SPI_PARAMS              spi_params;
-    TMC429_REGISTERS        registers;
-}TMC429_CONFIG;
+    uint32_t   datagram_low_word;
+    uint32_t   datagram_high_word;
+    uint32_t   cover_position_len;
+    uint32_t   cover_datagram;
+    uint32_t   if_configuration_429;
+    uint32_t   pos_comp_429;
+    uint32_t   im;
+    uint32_t   power_down;
+    uint32_t   type_version_429;
+    uint32_t   switchs;
+    uint32_t   smgp;   // Stepper Motor Global Parameter
+} TMC429_COMMON_REGISTERS;
 
-static BYTE eTMC429IdxWriteRegister(TMC429_CONFIG *var, DWORD idx_register);
-static BYTE eTMC429IdxReadRegister(TMC429_CONFIG *var, DWORD idx_register);
-static BYTE eTMC429InitSequence(TMC429_CONFIG *var);
-static BYTE eTMC429SetGlobalParamsSequence(TMC429_CONFIG *var);
-static BYTE eTMC429SetMotorParamSequence(TMC429_CONFIG *var, DWORD motor);
-static BYTE eTMC429HardStopSequence(TMC429_CONFIG *var, DWORD motor);
-static BYTE eTMC429ResetPositionSequence(TMC429_CONFIG *var, DWORD motor);
-static BYTE eTMC429GetDynamicParametersSequence(TMC429_CONFIG *var);
-static BYTE eTMC429CalcParameters(WORD stepper_resolution, BYTE resolution, DWORD desire_dps_fs, DWORD time_acc_ms, DWORD *vmax, DWORD *amax, DWORD *pulse_div, DWORD *ramp_div, DWORD *pmul, DWORD *pdiv);
+typedef struct
+{
+    TMC429_STEPPER_REGISTERS    stepper[3];
+    TMC429_COMMON_REGISTERS     common;
+    uint32_t                    status;
+} TMC429_REGISTERS;
 
-void eTMC429InitVar(SPI_MODULE mSpiModule, UINT chipSelect, QWORD waitingPeriod, TMC429_CONFIG *var, DWORD shaft, DWORD refSwitchPolarity);
+typedef struct
+{
+    SPI_PARAMS                  spi_params;
+    TMC429_REGISTERS            registers;
+} TMC429_CONFIG;
+
+#define TMC429_COMMON_REGISTERS_INSTANCE(_shaft, _ref_switch_pol)   \
+{                                                                   \
+    .datagram_low_word = 0,                                         \
+    .datagram_high_word = 0,                                        \
+    .cover_position_len = 0,                                        \
+    .cover_datagram = 0,                                            \
+    .if_configuration_429 = IDX_IF_CONFIGURATION | IF_EN_REFR | (_ref_switch_pol & 0x00000001),                     \
+    .pos_comp_429 = 0,                                              \
+    .im = 0,                                                        \
+    .power_down = 0,                                                \
+    .type_version_429 = 0,                                          \
+    .switchs = 0,                                                   \
+    .smgp =  IDX_SMGP | SMGP_CONTINUOUS_UPDATE | 0x00000700 | SMGP_3_STEPPER_MOTOR | ((_shaft << 4) & 0x00000010)   \
+}
+
+#define TMC429_REGISTERS_INSTANCE(_shaft, _ref_switch_pol)                  \
+{                                                                           \
+    .stepper = {0},                                                         \
+    .common = TMC429_COMMON_REGISTERS_INSTANCE(_shaft, _ref_switch_pol),    \
+    .status = 0,                                                            \
+}
+
+#define TMC429_INSTANCE(_spi_module, _io_port, _io_indice, _periodic_time, _shaft, _ref_switch_pol) \
+{                                                                                               \
+    .spi_params = SPI_PARAMS_INSTANCE(_spi_module, _io_port, _io_indice, _periodic_time, 6),    \
+    .registers = TMC429_REGISTERS_INSTANCE(_shaft, _ref_switch_pol),                                                                           \
+}
+
+#define TMC429_DEF(_name, _spi_module, _cs_pin, _periodic_time, _shaft, _ref_switch_pol)    \
+static TMC429_CONFIG _name = TMC429_INSTANCE(_spi_module, _XBR(_cs_pin), _IND(_cs_pin), _periodic_time, _shaft, _ref_switch_pol)
+
 void eTMC429Deamon(TMC429_CONFIG *var);
-BYTE eTMC429SetMotorParam(TMC429_CONFIG *var, DWORD motor, WORD stepper_resolution, BYTE resolution, DWORD refConf, DWORD desire_dps_fs, DWORD time_acc_ms, DWORD irun, DWORD ihold, DWORD rampmode);
-DWORD eTMC429GetRealVelocity(TMC429_CONFIG var, DWORD motor, WORD stepper_resolution);
-DWORD eTMC429GetRealAcceleration(TMC429_CONFIG var, DWORD motor);
+uint8_t eTMC429SetMotorParam(TMC429_CONFIG *var, uint32_t motor, uint16_t stepper_resolution, uint8_t resolution, uint32_t refConf, uint32_t desire_dps_fs, uint32_t time_acc_ms, uint32_t irun, uint32_t ihold, uint32_t rampmode);
+uint32_t eTMC429GetRealVelocity(TMC429_CONFIG var, uint32_t motor, uint16_t stepper_resolution);
+uint32_t eTMC429GetRealAcceleration(TMC429_CONFIG var, uint32_t motor);
 
 #define eTMC429HardStop(var, motor)                             SET_BIT(var.spi_params.flags, (SM_TMC429_HARD_STOP_0 + motor))
 #define eTMC429SoftStop(var, motor)                             SET_BIT(var.spi_params.flags, (SM_TMC429_SOFT_STOP_0 + motor))

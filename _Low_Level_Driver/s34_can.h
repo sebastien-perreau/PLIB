@@ -325,10 +325,8 @@ typedef struct _CAN_REGISTERS
 	volatile CAN_FIFO_REGS canFifoRegisters[CAN_NUM_OF_CHANNELS];	
 }CAN_REGISTERS;
 
-#if (PERIPHERAL_CAN1_ENABLE == 1) || (PERIPHERAL_CAN2_ENABLE == 1)
 extern const CAN_REGISTERS * mCANModules[CAN_NUM_OF_MODULES];
 extern const CAN_FLTCON_BYTES mCANFilterControlMap[CAN_NUM_OF_FILTERS]; 
-#endif
 
 // --------------------------------------------------
 // **** MACRO AND STRUCTURE FOR THE CAN ROUTINE ****

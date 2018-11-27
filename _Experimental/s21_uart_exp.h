@@ -14,6 +14,7 @@ typedef enum
 
 typedef enum
 {
+    EXP_UART_BAUDRATE_600           = 600,
     EXP_UART_BAUDRATE_9600          = 9600,
     EXP_UART_BAUDRATE_19200         = 19200,
     EXP_UART_BAUDRATE_115200        = 115200,
@@ -134,8 +135,8 @@ uint32_t exp_uart_get_baudrate(EXP_UART_MODULE id);
 bool exp_uart_transmission_has_completed(EXP_UART_MODULE id);
 bool exp_uart_is_tx_ready(EXP_UART_MODULE id);
 bool exp_uart_is_rx_data_available(EXP_UART_MODULE id);
-void exp_uart_send_break(EXP_UART_MODULE id);
+bool exp_uart_send_break(EXP_UART_MODULE id);
 bool exp_uart_send_data(EXP_UART_MODULE id, uint16_t data);
-bool exp_uart_get_data(EXP_UART_MODULE id, uint16_t *data);
+bool exp_uart_get_data(EXP_UART_MODULE id, uint16_t *p_data);
 
 #endif

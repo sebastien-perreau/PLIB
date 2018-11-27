@@ -1,26 +1,17 @@
+/*********************************************************************
+*	Interrupt module
+*	Author : Sébastien PERREAU
+*
+*	Revision history	:
+*               15/11/2013      - Initial release
+*               14/11/2018      - Compatibility PLIB
+*                               - No dependencies to xc32 library
+*                               - Add comments   
+*********************************************************************/
+
 #include "../PLIB.h"
 
-enum
-{
-    SFR_REG,
-    SFR_CLR,
-    SFR_SET,
-    SFR_INV
-};
-
-typedef volatile unsigned int   VUINT;
-
-typedef struct
-{
-    VUINT           *ifs;
-    VUINT           *iec;
-    VUINT           *ipc;
-    unsigned int    mask;
-    unsigned int    sub_shift;
-    unsigned int    pri_shift;
-}INT_TBL_ENTRY;
-
-const INT_TBL_ENTRY intTblEntry[] =
+const IRQ_REGISTERS IrqTab[] =
 {
     {   &IFS0,  &IEC0,  &IPC0,  _IFS0_CTIF_MASK,        _IPC0_CTIS_POSITION,    _IPC0_CTIP_POSITION     },  // Core Timer Interrupt
 
@@ -57,45 +48,45 @@ const INT_TBL_ENTRY intTblEntry[] =
     {   &IFS0,  &IEC0,  &IPC4,  _IFS0_OC4IF_MASK,       _IPC4_OC4IS_POSITION,   _IPC4_OC4IP_POSITION    },  // Output Capture 4
     {   &IFS0,  &IEC0,  &IPC5,  _IFS0_OC5IF_MASK,       _IPC5_OC5IS_POSITION,   _IPC5_OC5IP_POSITION    },  // Output Capture 5
 
-    {   &IFS1,  &IEC1,  &IPC6,  _IFS1_CNIF_MASK,        _IPC6_CNIS_POSITION,    _IPC6_CNIP_POSITION     }, // Input Change
+    {   &IFS1,  &IEC1,  &IPC6,  _IFS1_CNIF_MASK,        _IPC6_CNIS_POSITION,    _IPC6_CNIP_POSITION     },  // Input Change
 
     {   &IFS0,  &IEC0,  &IPC5,  (_IFS0_SPI1EIF_MASK|_IFS0_SPI1TXIF_MASK|_IFS0_SPI1RXIF_MASK),     _IPC5_SPI1IS_POSITION,  _IPC5_SPI1IP_POSITION   },  // SPI 1
     {   &IFS1,  &IEC1,  &IPC7,  (_IFS1_SPI2EIF_MASK|_IFS1_SPI2TXIF_MASK|_IFS1_SPI2RXIF_MASK),     _IPC7_SPI2IS_POSITION,  _IPC7_SPI2IP_POSITION   },  // SPI 2
     {   &IFS0,  &IEC0,  &IPC6,  (_IFS0_SPI3EIF_MASK|_IFS0_SPI3TXIF_MASK|_IFS0_SPI3RXIF_MASK),     _IPC6_SPI3IS_POSITION,  _IPC6_SPI3IP_POSITION   },  // SPI 3
     {   &IFS1,  &IEC1,  &IPC8,  (_IFS1_SPI4EIF_MASK|_IFS1_SPI4TXIF_MASK|_IFS1_SPI4RXIF_MASK),     _IPC8_SPI4IS_POSITION,  _IPC8_SPI4IP_POSITION   },  // SPI 4
-    {   &IFS0,  &IEC0,  &IPC5,  _IFS0_SPI1EIF_MASK,     _IPC5_SPI1IS_POSITION,  _IPC5_SPI1IP_POSITION   },  // SPI 1 Fault
-    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_SPI2EIF_MASK,     _IPC7_SPI2IS_POSITION,  _IPC7_SPI2IP_POSITION   },  // SPI 2 Fault
-    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_SPI3EIF_MASK,     _IPC6_SPI3IS_POSITION,  _IPC6_SPI3IP_POSITION   },  // SPI 3 Fault
-    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_SPI4EIF_MASK,     _IPC8_SPI4IS_POSITION,  _IPC8_SPI4IP_POSITION   },  // SPI 4 Fault
-    {   &IFS0,  &IEC0,  &IPC5,  _IFS0_SPI1TXIF_MASK,     _IPC5_SPI1IS_POSITION,  _IPC5_SPI1IP_POSITION   },  // SPI 1 Transfer Done
-    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_SPI2TXIF_MASK,     _IPC7_SPI2IS_POSITION,  _IPC7_SPI2IP_POSITION   },  // SPI 2 Transfer Done
-    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_SPI3TXIF_MASK,     _IPC6_SPI3IS_POSITION,  _IPC6_SPI3IP_POSITION   },  // SPI 3 Transfer Done
-    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_SPI4TXIF_MASK,     _IPC8_SPI4IS_POSITION,  _IPC8_SPI4IP_POSITION   },  // SPI 4 Transfer Done
-    {   &IFS0,  &IEC0,  &IPC5,  _IFS0_SPI1RXIF_MASK,     _IPC5_SPI1IS_POSITION,  _IPC5_SPI1IP_POSITION   },  // SPI 1 Receive Done
-    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_SPI2RXIF_MASK,     _IPC7_SPI2IS_POSITION,  _IPC7_SPI2IP_POSITION   },  // SPI 2 Receive Done
-    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_SPI3RXIF_MASK,     _IPC6_SPI3IS_POSITION,  _IPC6_SPI3IP_POSITION   },  // SPI 3 Receive Done
-    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_SPI4RXIF_MASK,     _IPC8_SPI4IS_POSITION,  _IPC8_SPI4IP_POSITION   },  // SPI 4 Receive Done
+    {   &IFS0,  &IEC0,  &IPC5,  _IFS0_SPI1EIF_MASK,     _IPC5_SPI1IS_POSITION,  _IPC5_SPI1IP_POSITION   },      // SPI 1 Fault
+    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_SPI2EIF_MASK,     _IPC7_SPI2IS_POSITION,  _IPC7_SPI2IP_POSITION   },      // SPI 2 Fault
+    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_SPI3EIF_MASK,     _IPC6_SPI3IS_POSITION,  _IPC6_SPI3IP_POSITION   },      // SPI 3 Fault
+    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_SPI4EIF_MASK,     _IPC8_SPI4IS_POSITION,  _IPC8_SPI4IP_POSITION   },      // SPI 4 Fault
+    {   &IFS0,  &IEC0,  &IPC5,  _IFS0_SPI1TXIF_MASK,     _IPC5_SPI1IS_POSITION,  _IPC5_SPI1IP_POSITION   },     // SPI 1 Transfer Done
+    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_SPI2TXIF_MASK,     _IPC7_SPI2IS_POSITION,  _IPC7_SPI2IP_POSITION   },     // SPI 2 Transfer Done
+    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_SPI3TXIF_MASK,     _IPC6_SPI3IS_POSITION,  _IPC6_SPI3IP_POSITION   },     // SPI 3 Transfer Done
+    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_SPI4TXIF_MASK,     _IPC8_SPI4IS_POSITION,  _IPC8_SPI4IP_POSITION   },     // SPI 4 Transfer Done
+    {   &IFS0,  &IEC0,  &IPC5,  _IFS0_SPI1RXIF_MASK,     _IPC5_SPI1IS_POSITION,  _IPC5_SPI1IP_POSITION   },     // SPI 1 Receive Done
+    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_SPI2RXIF_MASK,     _IPC7_SPI2IS_POSITION,  _IPC7_SPI2IP_POSITION   },     // SPI 2 Receive Done
+    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_SPI3RXIF_MASK,     _IPC6_SPI3IS_POSITION,  _IPC6_SPI3IP_POSITION   },     // SPI 3 Receive Done
+    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_SPI4RXIF_MASK,     _IPC8_SPI4IS_POSITION,  _IPC8_SPI4IP_POSITION   },     // SPI 4 Receive Done
     
     {   &IFS0,  &IEC0,  &IPC6,  (_IFS0_I2C1BIF_MASK|_IFS0_I2C1SIF_MASK|_IFS0_I2C1MIF_MASK),     _IPC6_I2C1IS_POSITION,  _IPC6_I2C1IP_POSITION   },  // I2C 1
     {   &IFS1,  &IEC1,  &IPC8,  (_IFS1_I2C2BIF_MASK|_IFS1_I2C2SIF_MASK|_IFS1_I2C2MIF_MASK),     _IPC8_I2C2IS_POSITION,  _IPC8_I2C2IP_POSITION   },  // I2C 2
     {   &IFS0,  &IEC0,  &IPC6,  (_IFS0_I2C3BIF_MASK|_IFS0_I2C3SIF_MASK|_IFS0_I2C3MIF_MASK),     _IPC6_I2C3IS_POSITION,  _IPC6_I2C3IP_POSITION   },  // I2C 3
     {   &IFS1,  &IEC1,  &IPC7,  (_IFS1_I2C4BIF_MASK|_IFS1_I2C4SIF_MASK|_IFS1_I2C4MIF_MASK),     _IPC7_I2C4IS_POSITION,  _IPC7_I2C4IP_POSITION   },  // I2C 4
     {   &IFS1,  &IEC1,  &IPC8,  (_IFS1_I2C5BIF_MASK|_IFS1_I2C5SIF_MASK|_IFS1_I2C5MIF_MASK),     _IPC8_I2C5IS_POSITION,  _IPC8_I2C5IP_POSITION   },  // I2C 5
-    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C1BIF_MASK,     _IPC6_I2C1IS_POSITION,  _IPC6_I2C1IP_POSITION   },  // I2C 1 Bus Collision Event
-    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C2BIF_MASK,     _IPC8_I2C2IS_POSITION,  _IPC8_I2C2IP_POSITION   },  // I2C 2 Bus Collision Event
-    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C3BIF_MASK,     _IPC6_I2C3IS_POSITION,  _IPC6_I2C3IP_POSITION   },  // I2C 3 Bus Collision Event
-    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_I2C4BIF_MASK,     _IPC7_I2C4IS_POSITION,  _IPC7_I2C4IP_POSITION   },  // I2C 4 Bus Collision Event
-    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C5BIF_MASK,     _IPC8_I2C5IS_POSITION,  _IPC8_I2C5IP_POSITION   },  // I2C 5 Bus Collision Event
-    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C1SIF_MASK,     _IPC6_I2C1IS_POSITION,  _IPC6_I2C1IP_POSITION   },  // I2C 1 Slave Event
-    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C2SIF_MASK,     _IPC8_I2C2IS_POSITION,  _IPC8_I2C2IP_POSITION   },  // I2C 2 Slave Event
-    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C3SIF_MASK,     _IPC6_I2C3IS_POSITION,  _IPC6_I2C3IP_POSITION   },  // I2C 3 Slave Event
-    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_I2C4SIF_MASK,     _IPC7_I2C4IS_POSITION,  _IPC7_I2C4IP_POSITION   },  // I2C 4 Slave Event
-    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C5SIF_MASK,     _IPC8_I2C5IS_POSITION,  _IPC8_I2C5IP_POSITION   },  // I2C 5 Slave Event
-    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C1MIF_MASK,     _IPC6_I2C1IS_POSITION,  _IPC6_I2C1IP_POSITION   },  // I2C 1 Master Event
-    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C2MIF_MASK,     _IPC8_I2C2IS_POSITION,  _IPC8_I2C2IP_POSITION   },  // I2C 2 Master Event
-    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C3MIF_MASK,     _IPC6_I2C3IS_POSITION,  _IPC6_I2C3IP_POSITION   },  // I2C 3 Master Event
-    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_I2C4MIF_MASK,     _IPC7_I2C4IS_POSITION,  _IPC7_I2C4IP_POSITION   },  // I2C 4 Master Event
-    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C5MIF_MASK,     _IPC8_I2C5IS_POSITION,  _IPC8_I2C5IP_POSITION   },  // I2C 5 Master Event
+    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C1BIF_MASK,     _IPC6_I2C1IS_POSITION,  _IPC6_I2C1IP_POSITION   },      // I2C 1 Bus Collision Event
+    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C2BIF_MASK,     _IPC8_I2C2IS_POSITION,  _IPC8_I2C2IP_POSITION   },      // I2C 2 Bus Collision Event
+    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C3BIF_MASK,     _IPC6_I2C3IS_POSITION,  _IPC6_I2C3IP_POSITION   },      // I2C 3 Bus Collision Event
+    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_I2C4BIF_MASK,     _IPC7_I2C4IS_POSITION,  _IPC7_I2C4IP_POSITION   },      // I2C 4 Bus Collision Event
+    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C5BIF_MASK,     _IPC8_I2C5IS_POSITION,  _IPC8_I2C5IP_POSITION   },      // I2C 5 Bus Collision Event
+    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C1SIF_MASK,     _IPC6_I2C1IS_POSITION,  _IPC6_I2C1IP_POSITION   },      // I2C 1 Slave Event
+    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C2SIF_MASK,     _IPC8_I2C2IS_POSITION,  _IPC8_I2C2IP_POSITION   },      // I2C 2 Slave Event
+    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C3SIF_MASK,     _IPC6_I2C3IS_POSITION,  _IPC6_I2C3IP_POSITION   },      // I2C 3 Slave Event
+    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_I2C4SIF_MASK,     _IPC7_I2C4IS_POSITION,  _IPC7_I2C4IP_POSITION   },      // I2C 4 Slave Event
+    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C5SIF_MASK,     _IPC8_I2C5IS_POSITION,  _IPC8_I2C5IP_POSITION   },      // I2C 5 Slave Event
+    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C1MIF_MASK,     _IPC6_I2C1IS_POSITION,  _IPC6_I2C1IP_POSITION   },      // I2C 1 Master Event
+    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C2MIF_MASK,     _IPC8_I2C2IS_POSITION,  _IPC8_I2C2IP_POSITION   },      // I2C 2 Master Event
+    {   &IFS0,  &IEC0,  &IPC6,  _IFS0_I2C3MIF_MASK,     _IPC6_I2C3IS_POSITION,  _IPC6_I2C3IP_POSITION   },      // I2C 3 Master Event
+    {   &IFS1,  &IEC1,  &IPC7,  _IFS1_I2C4MIF_MASK,     _IPC7_I2C4IS_POSITION,  _IPC7_I2C4IP_POSITION   },      // I2C 4 Master Event
+    {   &IFS1,  &IEC1,  &IPC8,  _IFS1_I2C5MIF_MASK,     _IPC8_I2C5IS_POSITION,  _IPC8_I2C5IP_POSITION   },      // I2C 5 Master Event
 
     {   &IFS0,  &IEC0,  &IPC6,  (_IFS0_U1EIF_MASK|_IFS0_U1RXIF_MASK|_IFS0_U1TXIF_MASK),       _IPC6_U1IS_POSITION,    _IPC6_U1IP_POSITION     },  // UART 1
     {   &IFS1,  &IEC1,  &IPC8,  (_IFS1_U2EIF_MASK|_IFS1_U2RXIF_MASK|_IFS1_U2TXIF_MASK),       _IPC8_U2IS_POSITION,    _IPC8_U2IP_POSITION     },  // UART 2
@@ -140,92 +131,213 @@ const INT_TBL_ENTRY intTblEntry[] =
     {   &IFS1,  &IEC1,  &IPC9,  _IFS1_DMA1IF_MASK,      _IPC9_DMA1IS_POSITION,  _IPC9_DMA1IP_POSITION   },  // DMA Channel 1
     {   &IFS1,  &IEC1,  &IPC9,  _IFS1_DMA2IF_MASK,      _IPC9_DMA2IS_POSITION,  _IPC9_DMA2IP_POSITION   },  // DMA Channel 2
     {   &IFS1,  &IEC1,  &IPC9,  _IFS1_DMA3IF_MASK,      _IPC9_DMA3IS_POSITION,  _IPC9_DMA3IP_POSITION   },  // DMA Channel 3
-    {   &IFS1,  &IEC1,  &IPC10,  _IFS1_DMA4IF_MASK,     _IPC10_DMA4IS_POSITION, _IPC10_DMA4IP_POSITION   },  // DMA Channel 4
-    {   &IFS1,  &IEC1,  &IPC10,  _IFS1_DMA5IF_MASK,     _IPC10_DMA5IS_POSITION, _IPC10_DMA5IP_POSITION   },  // DMA Channel 5
-    {   &IFS1,  &IEC1,  &IPC10,  _IFS1_DMA6IF_MASK,     _IPC10_DMA6IS_POSITION, _IPC10_DMA6IP_POSITION   },  // DMA Channel 6
-    {   &IFS1,  &IEC1,  &IPC10,  _IFS1_DMA7IF_MASK,     _IPC10_DMA7IS_POSITION, _IPC10_DMA7IP_POSITION   },  // DMA Channel 7
+    {   &IFS1,  &IEC1,  &IPC10,  _IFS1_DMA4IF_MASK,     _IPC10_DMA4IS_POSITION, _IPC10_DMA4IP_POSITION   }, // DMA Channel 4
+    {   &IFS1,  &IEC1,  &IPC10,  _IFS1_DMA5IF_MASK,     _IPC10_DMA5IS_POSITION, _IPC10_DMA5IP_POSITION   }, // DMA Channel 5
+    {   &IFS1,  &IEC1,  &IPC10,  _IFS1_DMA6IF_MASK,     _IPC10_DMA6IS_POSITION, _IPC10_DMA6IP_POSITION   }, // DMA Channel 6
+    {   &IFS1,  &IEC1,  &IPC10,  _IFS1_DMA7IF_MASK,     _IPC10_DMA7IS_POSITION, _IPC10_DMA7IP_POSITION   }, // DMA Channel 7
 
-    {   &IFS1,  &IEC1,  &IPC11,  _IFS1_USBIF_MASK,      _IPC11_USBIS_POSITION,  _IPC11_USBIP_POSITION   },    // USB
+    {   &IFS1,  &IEC1,  &IPC11,  _IFS1_USBIF_MASK,      _IPC11_USBIS_POSITION,  _IPC11_USBIP_POSITION   },  // USB
 
-    {   &IFS1,  &IEC1,  &IPC11,  _IFS1_CAN1IF_MASK,     _IPC11_CAN1IS_POSITION, _IPC11_CAN1IP_POSITION   },    // CAN1
-    {   &IFS1,  &IEC1,  &IPC11,  _IFS1_CAN2IF_MASK,     _IPC11_CAN2IS_POSITION, _IPC11_CAN2IP_POSITION   },    // CAN2
+    {   &IFS1,  &IEC1,  &IPC11,  _IFS1_CAN1IF_MASK,     _IPC11_CAN1IS_POSITION, _IPC11_CAN1IP_POSITION   }, // CAN1
+    {   &IFS1,  &IEC1,  &IPC11,  _IFS1_CAN2IF_MASK,     _IPC11_CAN2IS_POSITION, _IPC11_CAN2IP_POSITION   }, // CAN2
     
-    {   &IFS1,  &IEC1,  &IPC12,  _IFS1_ETHIF_MASK,      _IPC12_ETHIS_POSITION,  _IPC12_ETHIP_POSITION   }    // ETHERNET
+    {   &IFS1,  &IEC1,  &IPC12,  _IFS1_ETHIF_MASK,      _IPC12_ETHIS_POSITION,  _IPC12_ETHIP_POSITION   }   // ETHERNET
 };
 
-void IRQClearFlag(IRQ_SOURCE source)
+/*******************************************************************************
+ * Function: 
+ *      void irq_clr_flag(IRQ_SOURCE source)
+ * 
+ * Description:
+ *      This routine is used to clear the flag of a module (IRQ_SOURCE).
+ * 
+ * Parameters:
+ *      source: The IRQ_SOURCE of the module. 
+ * 
+ * Return:
+ *      none
+ * 
+ * Example:
+ *      none
+ ******************************************************************************/
+void irq_clr_flag(IRQ_SOURCE source)
 {
-    INT_TBL_ENTRY *tbl;
-
-    tbl = (INT_TBL_ENTRY *)intTblEntry + source;
-    tbl->ifs[SFR_CLR] = tbl->mask;
+    IRQ_REGISTERS * p_irq = (IRQ_REGISTERS *)&IrqTab[source];
+    p_irq->IFS[REG_CLR] = p_irq->MASK;
 }
 
-void IRQSetFlag(IRQ_SOURCE source)
+/*******************************************************************************
+ * Function: 
+ *      void irq_set_flag(IRQ_SOURCE source)
+ * 
+ * Description:
+ *      This routine is used to set the flag of a module (IRQ_SOURCE).
+ * 
+ * Parameters:
+ *      source: The IRQ_SOURCE of the module. 
+ * 
+ * Return:
+ *      none
+ * 
+ * Example:
+ *      none
+ ******************************************************************************/
+void irq_set_flag(IRQ_SOURCE source)
 {
-    INT_TBL_ENTRY *tbl;
-
-    tbl = (INT_TBL_ENTRY *)intTblEntry + source;
-    tbl->ifs[SFR_SET] = tbl->mask;
+    IRQ_REGISTERS * p_irq = (IRQ_REGISTERS *)&IrqTab[source];
+    p_irq->IFS[REG_SET] = p_irq->MASK;
 }
 
-UINT IRQGetFlag(IRQ_SOURCE source)
+/*******************************************************************************
+ * Function: 
+ *      void irq_get_flag(IRQ_SOURCE source)
+ * 
+ * Description:
+ *      This routine is used to get the flag of a module (IRQ_SOURCE). The 
+ *      position of the flag you want to read depends of the source. You can
+ *      use this function like that: if (!irq_get_flag(IRQ_T2)) ...
+ * 
+ * Parameters:
+ *      source: The IRQ_SOURCE of the module. 
+ * 
+ * Return:
+ *      An uint32_t value containing the flag status.
+ * 
+ * Example:
+ *      none
+ ******************************************************************************/
+uint32_t irq_get_flag(IRQ_SOURCE source)
 {
-    INT_TBL_ENTRY *tbl;
-
-    tbl = (INT_TBL_ENTRY *)intTblEntry + source;
-    return (*tbl->ifs & tbl->mask);
+    IRQ_REGISTERS * p_irq = (IRQ_REGISTERS *)&IrqTab[source];
+    return (p_irq->IFS[REG] & p_irq->MASK);
 }
 
-void IRQEnable(IRQ_SOURCE source, BOOL enable)
+/*******************************************************************************
+ * Function: 
+ *      void irq_enable(IRQ_SOURCE source, bool enable)
+ * 
+ * Description:
+ *      This routine is used to enable/disable the interruption(s) of your module.
+ * 
+ * Parameters:
+ *      source: The IRQ_SOURCE of the module. 
+ *      enable: true to enable or false to disable interruption for your module.
+ * 
+ * Return:
+ *      none
+ * 
+ * Example:
+ *      none
+ ******************************************************************************/
+void irq_enable(IRQ_SOURCE source, bool enable)
 {
-    INT_TBL_ENTRY *tbl;
-
-    tbl = (INT_TBL_ENTRY *)intTblEntry + source;
+    IRQ_REGISTERS * p_irq = (IRQ_REGISTERS *)&IrqTab[source];
     if(enable)
-        tbl->iec[SFR_SET] = tbl->mask;
+    {
+        p_irq->IEC[REG_SET] = p_irq->MASK;
+    }
     else
-        tbl->iec[SFR_CLR] = tbl->mask;
+    {
+        p_irq->IEC[REG_CLR] = p_irq->MASK;
+    }
 }
 
-UINT IRQGetEnable(IRQ_SOURCE source)
+/*******************************************************************************
+ * Function: 
+ *      void irq_set_priority(IRQ_SOURCE source, uint32_t priority)
+ * 
+ * Description:
+ *      This routine is used to set the priority value of your interruption
+ *      module. 
+ *      Important: the priority and sub-priority should have the same values 
+ *      as the Interrupt Handler IPLxAUTO 
+ * 
+ * Parameters:
+ *      source: The IRQ_SOURCE of the module. 
+ *      priority: The IRQ_PRIORITY you want (0..7).
+ * 
+ * Return:
+ *      none
+ * 
+ * Example:
+ *      none
+ ******************************************************************************/
+void irq_set_priority(IRQ_SOURCE source, IRQ_PRIORITY priority)
 {
-    INT_TBL_ENTRY *tbl;
-
-    tbl = (INT_TBL_ENTRY *)intTblEntry + source;
-    return (*tbl->iec & tbl->mask);
+    IRQ_REGISTERS * p_irq = (IRQ_REGISTERS *)&IrqTab[source];
+    p_irq->IPC[REG_CLR] = (7 << p_irq->PRI_POS);
+    p_irq->IPC[REG_SET] = (priority << p_irq->PRI_POS);
 }
 
-void IRQSetPriority(IRQ_SOURCE source, UINT priority)
+/*******************************************************************************
+ * Function: 
+ *      IRQ_PRIORITY irq_get_priority(IRQ_SOURCE source)
+ * 
+ * Description:
+ *      This routine is used to get the priority value of your interruption
+ *      module.
+ * 
+ * Parameters:
+ *      source: The IRQ_SOURCE of the module.
+ * 
+ * Return:
+ *      It returns the IRQ_PRIORITY value of your module.
+ * 
+ * Example:
+ *      none
+ ******************************************************************************/
+IRQ_PRIORITY irq_get_priority(IRQ_SOURCE source)
 {
-    INT_TBL_ENTRY *tbl;
-
-    tbl = (INT_TBL_ENTRY *)intTblEntry + source;
-    tbl->ipc[SFR_CLR] = (7 << tbl->pri_shift);
-    tbl->ipc[SFR_SET] = (priority << tbl->pri_shift);
+    IRQ_REGISTERS * p_irq = (IRQ_REGISTERS *)&IrqTab[source];
+    return ((p_irq->IPC[REG] >> p_irq->PRI_POS) & 7);
 }
 
-UINT IRQGetPriority(IRQ_SOURCE source)
+/*******************************************************************************
+ * Function: 
+ *      void irq_set_sub_priority(IRQ_SOURCE source, IRQ_SUB_PRIORITY sub_priority)
+ * 
+ * Description:
+ *      This routine is used to set the sub-priority value of your interruption
+ *      module. 
+ *      Important: the priority and sub-priority should have the same values 
+ *      as the Interrupt Handler IPLxAUTO 
+ * 
+ * Parameters:
+ *      source: The IRQ_SOURCE of the module. 
+ *      sub-priority: The IRQ_SUB_PRIORITY you want (0..3).
+ * 
+ * Return:
+ *      none
+ * 
+ * Example:
+ *      none
+ ******************************************************************************/
+void irq_set_sub_priority(IRQ_SOURCE source, IRQ_SUB_PRIORITY sub_priority)
 {
-    INT_TBL_ENTRY *tbl;
-
-    tbl = (INT_TBL_ENTRY *)intTblEntry + source;
-    return ((*tbl->ipc >> tbl->pri_shift) & 7);
+    IRQ_REGISTERS * p_irq = (IRQ_REGISTERS *)&IrqTab[source];
+    p_irq->IPC[REG_CLR] = (3 << p_irq->SUB_PRI_POS);
+    p_irq->IPC[REG_SET] = (sub_priority << p_irq->SUB_PRI_POS);
 }
 
-void IRQSetSubPriority(IRQ_SOURCE source, UINT subPriority)
+/*******************************************************************************
+ * Function: 
+ *      IRQ_SUB_PRIORITY irq_get_sub_priority(IRQ_SOURCE source)
+ * 
+ * Description:
+ *      This routine is used to get the sub-priority value of your interruption
+ *      module.
+ * 
+ * Parameters:
+ *      source: The IRQ_SOURCE of the module.
+ * 
+ * Return:
+ *      It returns the IRQ_SUB_PRIORITY value of your module.
+ * 
+ * Example:
+ *      none
+ ******************************************************************************/
+IRQ_SUB_PRIORITY irq_get_sub_priority(IRQ_SOURCE source)
 {
-    INT_TBL_ENTRY *tbl;
-
-    tbl = (INT_TBL_ENTRY *)intTblEntry + source;
-    tbl->ipc[SFR_CLR] = (3 << tbl->sub_shift);
-    tbl->ipc[SFR_SET] = (subPriority << tbl->sub_shift);
-}
-
-UINT INTGetSubPriority(IRQ_SOURCE source)
-{
-    INT_TBL_ENTRY *tbl;
-
-    tbl = (INT_TBL_ENTRY *)intTblEntry + source;
-    return ((*tbl->ipc >> tbl->sub_shift) & 3);
+    IRQ_REGISTERS * p_irq = (IRQ_REGISTERS *)&IrqTab[source];
+    return ((p_irq->IPC[REG] >> p_irq->SUB_PRI_POS) & 3);
 }

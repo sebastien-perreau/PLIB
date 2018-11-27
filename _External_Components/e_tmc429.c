@@ -31,6 +31,17 @@
 #define RPM_TO_dps(rpm)             (rpm*6)
 #define RPS_TO_dps(rps)             (rps*360)
 
+static BYTE eTMC429IdxWriteRegister(TMC429_CONFIG *var, DWORD idx_register);
+static BYTE eTMC429IdxReadRegister(TMC429_CONFIG *var, DWORD idx_register);
+static BYTE eTMC429InitSequence(TMC429_CONFIG *var);
+static BYTE eTMC429SetGlobalParamsSequence(TMC429_CONFIG *var);
+static BYTE eTMC429SetMotorParamSequence(TMC429_CONFIG *var, DWORD motor);
+static BYTE eTMC429HardStopSequence(TMC429_CONFIG *var, DWORD motor);
+static BYTE eTMC429ResetPositionSequence(TMC429_CONFIG *var, DWORD motor);
+static BYTE eTMC429GetDynamicParametersSequence(TMC429_CONFIG *var);
+static uint8_t eTMC429CalcParameters(uint16_t stepper_resolution, uint8_t resolution, uint32_t desire_dps_fs, uint32_t time_acc_ms, uint32_t *vmax, uint32_t *amax, uint32_t *pulse_div, uint32_t *ramp_div, uint32_t *pmul, uint32_t *pdiv);
+
+
 /*********************************************************************
 *	Define of the Look-Up Table (LUT). It is common to use a sine
 *       wave function for microstepping. With that, the current of one
@@ -52,43 +63,6 @@ BYTE tmc429_driver_table[128] =
 
 /*******************************************************************************
   Function:
-    void eTMC429InitVar(SPI_MODULE mSpiModule, UINT chipSelect, QWORD waitingPeriod, TMC429_CONFIG *var, DWORD shaft, DWORD refSwitchPolarity);
-
-  Description:
-    This routine initialise the TMC429 variables by assigning a SPI module, a chip select pin and
-    set the user config. The chip select pin is automaticaly assign and setted in this function.
-
-  Parameters:
-    mSpiModule          - The SPI module which will be used.
-
-    chipSelect          - The chip select pin.
- 
-    waitingPeriod       - The minimum of time during the device will be in a waiting state.
-
-    *var                - The variable assign to the QT2100 device.
- 
-    shaft               - The "default" direction for the 3 steppers.
- 
-    refSwitchPolarity   - The polarity of switch (if using).
-  *****************************************************************************/
-void eTMC429InitVar(SPI_MODULE mSpiModule, UINT chipSelect, QWORD waitingPeriod, TMC429_CONFIG *var, DWORD shaft, DWORD refSwitchPolarity)
-{    
-    SPIInitIOAsChipSelect(chipSelect);
-    var->spi_params.spi_module = mSpiModule;
-    var->spi_params.chip_select = chipSelect;
-    var->spi_params.flags = 0;
-    var->spi_params.bus_management_params.is_running = FALSE;
-    var->spi_params.bus_management_params.tick = -1;
-    var->spi_params.bus_management_params.waiting_period = waitingPeriod;
-    var->spi_params.state_machine.index = SM_TMC429_HOME;
-    var->spi_params.state_machine.tick = TICK_INIT;
-    
-    SET_BIT(var->spi_params.flags, SM_TMC429_INIT);
-    eTMC429SetGlobalParam((*var), shaft, refSwitchPolarity);
-}
-
-/*******************************************************************************
-  Function:
     void eTMC429Deamon(TMC429_CONFIG *var);
 
   Description:
@@ -104,108 +78,111 @@ void eTMC429InitVar(SPI_MODULE mSpiModule, UINT chipSelect, QWORD waitingPeriod,
 void eTMC429Deamon(TMC429_CONFIG *var)
 {
     BYTE i = 0;
+    
+    if (!var->spi_params.is_chip_select_initialize)
+    {
+        SPIInitIOAsChipSelect(var->spi_params.chip_select);
+        var->spi_params.is_chip_select_initialize = true;
+    }
+    
     if(var->spi_params.bus_management_params.is_running)
     {
-        if((SPICurrentChipSelect[var->spi_params.spi_module] == 0) || (SPICurrentChipSelect[var->spi_params.spi_module] == var->spi_params.chip_select))
+        switch(var->spi_params.state_machine.index)
         {
-            switch(var->spi_params.state_machine.index)
-            {
-                case SM_TMC429_HOME:
-                    for(i = 1 ; i < 22 ; i++)
+            case SM_TMC429_HOME:
+                for(i = 1 ; i < 22 ; i++)
+                {
+                    if((var->spi_params.flags >> i)&0x00000001)
                     {
-                        if((var->spi_params.flags >> i)&0x00000001)
-                        {
-                            var->spi_params.state_machine.index = i;
-                            break;
-                        }
+                        var->spi_params.state_machine.index = i;
+                        break;
                     }
-                    if(var->spi_params.state_machine.index == SM_TMC429_HOME)
-                    {
-                        var->spi_params.state_machine.index == SM_TMC429_END;
-                    }
-                    break;
-                case SM_TMC429_INIT:
-                    if(!eTMC429InitSequence(var))
-                    {
-                        CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
-                        if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
-                    }
-                    break;
-                case SM_TMC429_SET_GLOBAL_PARAMS:
-                    if(!eTMC429SetGlobalParamsSequence(var))
-                    {
-                        CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
-                        if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
-                    }
-                    break;
-                case SM_TMC429_RESET_POSITION_0:
-                case SM_TMC429_RESET_POSITION_1:
-                case SM_TMC429_RESET_POSITION_2:
-                    if(!eTMC429ResetPositionSequence(var, (var->spi_params.state_machine.index - SM_TMC429_RESET_POSITION_0)))
-                    {
-                        CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
-                        if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
-                    }
-                    break;
-                case SM_TMC429_HARD_STOP_0:
-                case SM_TMC429_HARD_STOP_1:
-                case SM_TMC429_HARD_STOP_2:
-                    if(!eTMC429HardStopSequence(var, (var->spi_params.state_machine.index - SM_TMC429_HARD_STOP_0)))
-                    {
-                        CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
-                        if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
-                    }
-                    break;
-                case SM_TMC429_SOFT_STOP_0:
-                case SM_TMC429_SOFT_STOP_1:
-                case SM_TMC429_SOFT_STOP_2:
-                    if(!eTMC429IdxWriteRegister(var, (IDX_V_TARGET | ((var->spi_params.state_machine.index - SM_TMC429_SOFT_STOP_0) << 29))))
-                    {
-                        CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
-                        if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
-                    }
-                    break;
-                case SM_TMC429_SET_PARAM_MOTOR_0:
-                case SM_TMC429_SET_PARAM_MOTOR_1:
-                case SM_TMC429_SET_PARAM_MOTOR_2:
-                    if(!eTMC429SetMotorParamSequence(var, (var->spi_params.state_machine.index - SM_TMC429_SET_PARAM_MOTOR_0)))
-                    {
-                        CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
-                        if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
-                    }
-                    break;
-                case SM_TMC429_SET_TARGET_POSITION_0:
-                case SM_TMC429_SET_TARGET_POSITION_1:
-                case SM_TMC429_SET_TARGET_POSITION_2:
-                    if(!eTMC429IdxWriteRegister(var, var->registers.x_target[var->spi_params.state_machine.index - SM_TMC429_SET_TARGET_POSITION_0]))
-                    {
-                        CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
-                        if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
-                    }
-                    break;
-                case SM_TMC429_SET_TARGET_VELOCITY_0:
-                case SM_TMC429_SET_TARGET_VELOCITY_1:
-                case SM_TMC429_SET_TARGET_VELOCITY_2:
-                    if(!eTMC429IdxWriteRegister(var, var->registers.v_target[var->spi_params.state_machine.index - SM_TMC429_SET_TARGET_VELOCITY_0]))
-                    {
-                        CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
-                        if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
-                    }
-                    break;
-                case SM_TMC429_GET_DYNAMIC_PARAMETERS:
-                    if(!eTMC429GetDynamicParametersSequence(var))
-                    {
-                        CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
-                        if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
-                    }
-                    break;
-                case SM_TMC429_END:
-                    var->spi_params.state_machine.index = SM_TMC429_HOME;
-                    var->spi_params.bus_management_params.is_running = FALSE;
-                    var->spi_params.bus_management_params.tick = mGetTick();
-                    SPICurrentChipSelect[var->spi_params.spi_module] = 0;
-                    break;
-            }
+                }
+                if(var->spi_params.state_machine.index == SM_TMC429_HOME)
+                {
+                    var->spi_params.state_machine.index == SM_TMC429_END;
+                }
+                break;
+            case SM_TMC429_INIT:
+                if(!eTMC429InitSequence(var))
+                {
+                    CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
+                    if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
+                }
+                break;
+            case SM_TMC429_SET_GLOBAL_PARAMS:
+                if(!eTMC429SetGlobalParamsSequence(var))
+                {
+                    CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
+                    if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
+                }
+                break;
+            case SM_TMC429_RESET_POSITION_0:
+            case SM_TMC429_RESET_POSITION_1:
+            case SM_TMC429_RESET_POSITION_2:
+                if(!eTMC429ResetPositionSequence(var, (var->spi_params.state_machine.index - SM_TMC429_RESET_POSITION_0)))
+                {
+                    CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
+                    if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
+                }
+                break;
+            case SM_TMC429_HARD_STOP_0:
+            case SM_TMC429_HARD_STOP_1:
+            case SM_TMC429_HARD_STOP_2:
+                if(!eTMC429HardStopSequence(var, (var->spi_params.state_machine.index - SM_TMC429_HARD_STOP_0)))
+                {
+                    CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
+                    if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
+                }
+                break;
+            case SM_TMC429_SOFT_STOP_0:
+            case SM_TMC429_SOFT_STOP_1:
+            case SM_TMC429_SOFT_STOP_2:
+                if(!eTMC429IdxWriteRegister(var, (IDX_V_TARGET | ((var->spi_params.state_machine.index - SM_TMC429_SOFT_STOP_0) << 29))))
+                {
+                    CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
+                    if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
+                }
+                break;
+            case SM_TMC429_SET_PARAM_MOTOR_0:
+            case SM_TMC429_SET_PARAM_MOTOR_1:
+            case SM_TMC429_SET_PARAM_MOTOR_2:
+                if(!eTMC429SetMotorParamSequence(var, (var->spi_params.state_machine.index - SM_TMC429_SET_PARAM_MOTOR_0)))
+                {
+                    CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
+                    if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
+                }
+                break;
+            case SM_TMC429_SET_TARGET_POSITION_0:
+            case SM_TMC429_SET_TARGET_POSITION_1:
+            case SM_TMC429_SET_TARGET_POSITION_2:
+                if(!eTMC429IdxWriteRegister(var, var->registers.stepper[var->spi_params.state_machine.index - SM_TMC429_SET_TARGET_POSITION_0].x_target))
+                {
+                    CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
+                    if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
+                }
+                break;
+            case SM_TMC429_SET_TARGET_VELOCITY_0:
+            case SM_TMC429_SET_TARGET_VELOCITY_1:
+            case SM_TMC429_SET_TARGET_VELOCITY_2:
+                if(!eTMC429IdxWriteRegister(var, var->registers.stepper[var->spi_params.state_machine.index - SM_TMC429_SET_TARGET_VELOCITY_0].v_target))
+                {
+                    CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
+                    if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
+                }
+                break;
+            case SM_TMC429_GET_DYNAMIC_PARAMETERS:
+                if(!eTMC429GetDynamicParametersSequence(var))
+                {
+                    CLR_BIT(var->spi_params.flags, var->spi_params.state_machine.index);
+                    if(!var->spi_params.flags){var->spi_params.state_machine.index = SM_TMC429_END;}else{var->spi_params.state_machine.index = SM_TMC429_HOME;}
+                }
+                break;
+            case SM_TMC429_END:
+                var->spi_params.state_machine.index = SM_TMC429_HOME;
+                var->spi_params.bus_management_params.is_running = FALSE;
+                var->spi_params.bus_management_params.tick = mGetTick();
+                break;
         }
     }
 }
@@ -222,16 +199,16 @@ void eTMC429Deamon(TMC429_CONFIG *var)
   Returns:
     The status of the function. ('3' means OK, 'others' means ERROR).
   *****************************************************************************/
-BYTE eTMC429SetMotorParam(TMC429_CONFIG *var, DWORD motor, WORD stepper_resolution, BYTE resolution, DWORD refConf, DWORD desire_dps_fs, DWORD time_acc_ms, DWORD irun, DWORD ihold, DWORD rampmode)
+uint8_t eTMC429SetMotorParam(TMC429_CONFIG *var, uint32_t motor, uint16_t stepper_resolution, uint8_t resolution, uint32_t refConf, uint32_t desire_dps_fs, uint32_t time_acc_ms, uint32_t irun, uint32_t ihold, uint32_t rampmode)
 {
-    DWORD vmax;
-    DWORD amax;
-    DWORD pulse_div;
-    DWORD ramp_div;
-    DWORD pmul;
-    DWORD pdiv;
+    uint32_t vmax;
+    uint32_t amax;
+    uint32_t pulse_div;
+    uint32_t ramp_div;
+    uint32_t pmul;
+    uint32_t pdiv;
     
-    BYTE status = eTMC429CalcParameters(stepper_resolution, resolution, desire_dps_fs, time_acc_ms, &vmax, &amax, &pulse_div, &ramp_div, &pmul, &pdiv);
+    uint8_t status = eTMC429CalcParameters(stepper_resolution, resolution, desire_dps_fs, time_acc_ms, &vmax, &amax, &pulse_div, &ramp_div, &pmul, &pdiv);
 
     if(status == 3)
     {
@@ -259,13 +236,13 @@ BYTE eTMC429SetMotorParam(TMC429_CONFIG *var, DWORD motor, WORD stepper_resoluti
                 resolution = 6;
                 break;
         }
-        var->registers.v_min[motor] = IDX_V_MIN | (motor << 29) | 0x00000001;
-        var->registers.v_max[motor] = IDX_V_MAX | (motor << 29) | (vmax & 0x7FF);
-        var->registers.a_max[motor] = IDX_A_MAX | (motor << 29) | (amax & 0x7FF);
-        var->registers.a_threshold[motor] = IDX_A_THRESHOLD | (motor << 29) | ((irun & 0x07) << 20) | ((irun & 0x07) << 16) | ((ihold & 0x07) << 12 | 0x00000040);
-        var->registers.refconf_rm[motor] = IDX_REFCONF_RM | (motor << 29) | (refConf & 0x00000F00) | (rampmode & 0x03);
-        var->registers.pulse_ramp_usrs[motor] = IDX_PULSEDIV_RAMPDIV | (motor << 29) | ((pulse_div & 0x0F) << 12) | ((ramp_div & 0x0F) << 8) | (resolution & 0x07);
-        var->registers.pmul_pdiv[motor] = IDX_PMUL_PDIV | (motor << 29) | ((pmul & 0x000000FF) << 8) | (pdiv & 0x0000000F);
+        var->registers.stepper[motor].v_min = IDX_V_MIN | (motor << 29) | 0x00000001;
+        var->registers.stepper[motor].v_max = IDX_V_MAX | (motor << 29) | (vmax & 0x7FF);
+        var->registers.stepper[motor].a_max = IDX_A_MAX | (motor << 29) | (amax & 0x7FF);
+        var->registers.stepper[motor].a_threshold = IDX_A_THRESHOLD | (motor << 29) | ((irun & 0x07) << 20) | ((irun & 0x07) << 16) | ((ihold & 0x07) << 12 | 0x00000040);
+        var->registers.stepper[motor].refconf_rm = IDX_REFCONF_RM | (motor << 29) | (refConf & 0x00000F00) | (rampmode & 0x03);
+        var->registers.stepper[motor].pulse_ramp_usrs = IDX_PULSEDIV_RAMPDIV | (motor << 29) | ((pulse_div & 0x0F) << 12) | ((ramp_div & 0x0F) << 8) | (resolution & 0x07);
+        var->registers.stepper[motor].pmul_pdiv = IDX_PMUL_PDIV | (motor << 29) | ((pmul & 0x000000FF) << 8) | (pdiv & 0x0000000F);
 
         SET_BIT(var->spi_params.flags, (SM_TMC429_SET_PARAM_MOTOR_0 + motor));
     }
@@ -291,9 +268,9 @@ BYTE eTMC429SetMotorParam(TMC429_CONFIG *var, DWORD motor, WORD stepper_resoluti
   Returns:
     The real velocity in degree per second.
   *****************************************************************************/
-DWORD eTMC429GetRealVelocity(TMC429_CONFIG var, DWORD motor, WORD stepper_resolution)
+uint32_t eTMC429GetRealVelocity(TMC429_CONFIG var, uint32_t motor, uint16_t stepper_resolution)
 {
-    float temp = ((CLK_FREQUENCY_TMC429/1000.0)*(var.registers.v_max[motor] & 0x7FF)) / ((pow(2, ((var.registers.pulse_ramp_usrs[motor] >> 12) & 0x00F) + 16)) * (pow(2, (var.registers.pulse_ramp_usrs[motor] & 0x007))) * stepper_resolution) * 360000.0;
+    float temp = ((CLK_FREQUENCY_TMC429/1000.0)*(var.registers.stepper[motor].v_max & 0x7FF)) / ((pow(2, ((var.registers.stepper[motor].pulse_ramp_usrs >> 12) & 0x00F) + 16)) * (pow(2, (var.registers.stepper[motor].pulse_ramp_usrs & 0x007))) * stepper_resolution) * 360000.0;
     return floor(temp + 0.5);
 }
 
@@ -313,12 +290,12 @@ DWORD eTMC429GetRealVelocity(TMC429_CONFIG var, DWORD motor, WORD stepper_resolu
   Returns:
     The real acceleration in millisecond.
   *****************************************************************************/
-DWORD eTMC429GetRealAcceleration(TMC429_CONFIG var, DWORD motor)
+uint32_t eTMC429GetRealAcceleration(TMC429_CONFIG var, uint32_t motor)
 {
     float temp;
-    if((var.registers.a_max[motor] & 0x7FF) != 0)
+    if((var.registers.stepper[motor].a_max & 0x7FF) != 0)
     {
-        temp = ((var.registers.v_max[motor] & 0x7FF) * (pow(2, ((var.registers.pulse_ramp_usrs[motor] >> 8) & 0x00F) + 13))) / ((CLK_FREQUENCY_TMC429 / 1000) * (var.registers.a_max[motor] & 0x7FF));
+        temp = ((var.registers.stepper[motor].v_max & 0x7FF) * (pow(2, ((var.registers.stepper[motor].pulse_ramp_usrs >> 8) & 0x00F) + 13))) / ((CLK_FREQUENCY_TMC429 / 1000) * (var.registers.stepper[motor].a_max & 0x7FF));
         return floor(temp + 0.5);
     }
     return 0;
@@ -360,7 +337,7 @@ static BYTE eTMC429IdxWriteRegister(TMC429_CONFIG *var, DWORD idx_register)
             }
             break;
         case SM_WAIT_RECEPTION:
-            if(((PORTReadBits(((var->spi_params.chip_select >> 8) & 0x000F) - 1, 1 << (var->spi_params.chip_select & 0x000F)) >> (var->spi_params.chip_select & 0x000F)) & 0x0001))
+            if (ports_get_bit(var->spi_params.chip_select))
             {
                 functionState = 0;
             }
@@ -387,8 +364,8 @@ static BYTE eTMC429IdxWriteRegister(TMC429_CONFIG *var, DWORD idx_register)
   *****************************************************************************/
 static BYTE eTMC429IdxReadRegister(TMC429_CONFIG *var, DWORD idx_register)
 {
-    DWORD *ptr;
-    DWORD motor;
+    uint32_t *ptr;
+    uint32_t motor;
     static enum _functionState
     {
         SM_FREE = 0,
@@ -402,85 +379,85 @@ static BYTE eTMC429IdxReadRegister(TMC429_CONFIG *var, DWORD idx_register)
     switch(idx_register)
     {
         case IDX_X_TARGET:
-            ptr = &var->registers.x_target[motor];
+            ptr = &var->registers.stepper[motor].x_target;
             break;
         case IDX_X_ACTUAL:
-            ptr = &var->registers.x_actual[motor];
+            ptr = &var->registers.stepper[motor].x_actual;
             break;
         case IDX_V_MIN:
-            ptr = &var->registers.v_min[motor];
+            ptr = &var->registers.stepper[motor].v_min;
             break;
         case IDX_V_MAX:
-            ptr = &var->registers.v_max[motor];
+            ptr = &var->registers.stepper[motor].v_max;
             break;
         case IDX_V_TARGET:
-            ptr = &var->registers.v_target[motor];
+            ptr = &var->registers.stepper[motor].v_target;
             break;
         case IDX_V_ACTUAL:
-            ptr = &var->registers.v_actual[motor];
+            ptr = &var->registers.stepper[motor].v_actual;
             break;
         case IDX_A_MAX:
-            ptr = &var->registers.a_max[motor];
+            ptr = &var->registers.stepper[motor].a_max;
             break;
         case IDX_A_ACTUAL:
-            ptr = &var->registers.a_actual[motor];
+            ptr = &var->registers.stepper[motor].a_actual;
             break;
         case IDX_A_THRESHOLD:
-            ptr = &var->registers.a_threshold[motor];
+            ptr = &var->registers.stepper[motor].a_threshold;
             break;
         case IDX_PMUL_PDIV:
-            ptr = &var->registers.pmul_pdiv[motor];
+            ptr = &var->registers.stepper[motor].pmul_pdiv;
             break;
         case IDX_REFCONF_RM:
-            ptr = &var->registers.refconf_rm[motor];
+            ptr = &var->registers.stepper[motor].refconf_rm;
             break;
         case IDX_IMASK_IFLAGS:
-            ptr = &var->registers.interrupt_mask_flag[motor];
+            ptr = &var->registers.stepper[motor].interrupt_mask_flag;
             break;
         case IDX_PULSEDIV_RAMPDIV:
-            ptr = &var->registers.pulse_ramp_usrs[motor];
+            ptr = &var->registers.stepper[motor].pulse_ramp_usrs;
             break;
         case IDX_DX_REF_TOLERANCE:
-            ptr = &var->registers.dx_ref_tolerance[motor];
+            ptr = &var->registers.stepper[motor].dx_ref_tolerance;
             break;
         case IDX_X_LATCHED:
-            ptr = &var->registers.x_latched[motor];
+            ptr = &var->registers.stepper[motor].x_latched;
             break;
         case IDX_USTEP_COUNT:
-            ptr = &var->registers.ustep_count_429[motor];
+            ptr = &var->registers.stepper[motor].ustep_count_429;
             break;
         case IDX_DATAGRAM_LOW:
-            ptr = &var->registers.datagram_low_word;
+            ptr = &var->registers.common.datagram_low_word;
             break;
         case IDX_DATAGRAM_HIGH:
-            ptr = &var->registers.datagram_high_word;
+            ptr = &var->registers.common.datagram_high_word;
             break;
         case IDX_COVER_POS_LEN:
-            ptr = &var->registers.cover_position_len;
+            ptr = &var->registers.common.cover_position_len;
             break;
         case IDX_COVER_DATAGRAM:
-            ptr = &var->registers.cover_datagram;
+            ptr = &var->registers.common.cover_datagram;
             break;
         case IDX_IF_CONFIGURATION:
-            ptr = &var->registers.if_configuration_429;
+            ptr = &var->registers.common.if_configuration_429;
             break;
         case IDX_POS_COMP:
-            ptr = &var->registers.pos_comp_429;
+            ptr = &var->registers.common.pos_comp_429;
             break;
         case IDX_IM:
-            ptr = &var->registers.im;
+            ptr = &var->registers.common.im;
             break;
         case IDX_POWER_DOWN:
-            ptr = &var->registers.power_down;
+            ptr = &var->registers.common.power_down;
             break;
         case IDX_TYPE_VERSION:
-            ptr = &var->registers.type_version_429;
+            ptr = &var->registers.common.type_version_429;
             break;
         case IDX_SWITCHS:
-            ptr = &var->registers.switchs;
+            ptr = &var->registers.common.switchs;
             break;
         case IDX_SMGP:
-            ptr = &var->registers.smgp;
+            ptr = &var->registers.common.smgp;
             break;
         default:
             ptr = &var->registers.status;
@@ -493,13 +470,13 @@ static BYTE eTMC429IdxReadRegister(TMC429_CONFIG *var, DWORD idx_register)
             functionState++;
             break;
         case SM_BUSY:
-            if(SPIWriteAndStore(var->spi_params.spi_module, var->spi_params.chip_select, idx_register | READ_REGISTER | (motor << 29), ptr, TRUE))
+            if(SPIWriteAndStore(var->spi_params.spi_module, var->spi_params.chip_select, idx_register | READ_REGISTER | (motor << 29), ptr, true))
             {
                 functionState++;
             }
             break;
         case SM_WAIT_RECEPTION:
-            if(((PORTReadBits(((var->spi_params.chip_select >> 8) & 0x000F) - 1, 1 << (var->spi_params.chip_select & 0x000F)) >> (var->spi_params.chip_select & 0x000F)) & 0x0001))
+            if (ports_get_bit(var->spi_params.chip_select))
             {
                 functionState = 0;
             }
@@ -596,13 +573,13 @@ static BYTE eTMC429SetGlobalParamsSequence(TMC429_CONFIG *var)
         case SM_FREE:
             globalParamsState = SM_SET_SMGP;
         case SM_SET_SMGP:
-            if(!eTMC429IdxWriteRegister(var, var->registers.smgp))
+            if(!eTMC429IdxWriteRegister(var, var->registers.common.smgp))
             {
                 globalParamsState = SM_SET_INTERFACE_CONF;
             }
             break;
         case SM_SET_INTERFACE_CONF:
-            if(!eTMC429IdxWriteRegister(var, var->registers.if_configuration_429))
+            if(!eTMC429IdxWriteRegister(var, var->registers.common.if_configuration_429))
             {
                 globalParamsState = SM_FREE;
             }
@@ -651,43 +628,43 @@ static BYTE eTMC429SetMotorParamSequence(TMC429_CONFIG *var, DWORD motor)
             motorParamState = SM_SET_VMIN;
             break;
         case SM_SET_VMIN:
-            if(!eTMC429IdxWriteRegister(var, var->registers.v_min[motor]))
+            if(!eTMC429IdxWriteRegister(var, var->registers.stepper[motor].v_min))
             {
                 motorParamState = SM_SET_VMAX;
             }
             break;
         case SM_SET_VMAX:
-            if(!eTMC429IdxWriteRegister(var, var->registers.v_max[motor]))
+            if(!eTMC429IdxWriteRegister(var, var->registers.stepper[motor].v_max))
             {
                 motorParamState = SM_SET_AMAX;
             }
             break;
         case SM_SET_AMAX:
-            if(!eTMC429IdxWriteRegister(var, var->registers.a_max[motor]))
+            if(!eTMC429IdxWriteRegister(var, var->registers.stepper[motor].a_max))
             {
                 motorParamState = SM_SET_CURRENT;
             }
             break;
         case SM_SET_CURRENT:
-            if(!eTMC429IdxWriteRegister(var, var->registers.a_threshold[motor]))
+            if(!eTMC429IdxWriteRegister(var, var->registers.stepper[motor].a_threshold))
             {
                 motorParamState = SM_RAMP_MODE;
             }
             break;
         case SM_RAMP_MODE:
-            if(!eTMC429IdxWriteRegister(var, var->registers.refconf_rm[motor]))
+            if(!eTMC429IdxWriteRegister(var, var->registers.stepper[motor].refconf_rm))
             {
                 motorParamState = SM_SET_MICROSTEP_RESOLUTION;
             }
             break;
         case SM_SET_MICROSTEP_RESOLUTION:
-            if(!eTMC429IdxWriteRegister(var, var->registers.pulse_ramp_usrs[motor]))
+            if(!eTMC429IdxWriteRegister(var, var->registers.stepper[motor].pulse_ramp_usrs));
             {
                 motorParamState = SM_SET_PMUL_PDIV;
             }
             break;
         case SM_SET_PMUL_PDIV:
-            if(!eTMC429IdxWriteRegister(var, var->registers.pmul_pdiv[motor]))
+            if(!eTMC429IdxWriteRegister(var, var->registers.stepper[motor].pmul_pdiv))
             {
                 motorParamState = SM_FREE;
             }
@@ -924,14 +901,14 @@ static BYTE eTMC429GetDynamicParametersSequence(TMC429_CONFIG *var)
     static function only use by the driver (deamon).
     The user must called eTMC429SetMotorParam(...) for sending a "motor param" request.
   *****************************************************************************/
-static BYTE eTMC429CalcParameters(WORD stepper_resolution, BYTE resolution, DWORD desire_dps_fs, DWORD time_to_reach_velocity_ms, DWORD *vmax, DWORD *amax, DWORD *pulse_div, DWORD *ramp_div, DWORD *pmul, DWORD *pdiv)
+static uint8_t eTMC429CalcParameters(uint16_t stepper_resolution, uint8_t resolution, uint32_t desire_dps_fs, uint32_t time_to_reach_velocity_ms, uint32_t *vmax, uint32_t *amax, uint32_t *pulse_div, uint32_t *ramp_div, uint32_t *pmul, uint32_t *pdiv)
 {
     float r;
     float delta_r;
     float delta_r_typ;
     float p_reduced;
-    WORD amax_upper_limit;
-    WORD amax_lower_limit;
+    uint16_t amax_upper_limit;
+    uint16_t amax_lower_limit;
 
     for((*pulse_div) = 13 ; (*pulse_div) >= 0 ; (*pulse_div)--)
     {

@@ -7,7 +7,7 @@ typedef enum
     SM_MCP23S17_WRITE,
     SM_MCP23S17_READ,
     SM_MCP23S17_END
-}MCP23S17_SM;
+} MCP23S17_SM;
 
 // Ordre registre avec BANK=0
 typedef struct 
@@ -44,10 +44,45 @@ typedef struct
     MCP23S17_REGISTERS      read_registers;
     MCP23S17_REGISTERS      write_registers;
 
-}MCP23S17_CONFIG;
+} MCP23S17_CONFIG;
 
-// Par défaut, BANK = 0 et incrément du pointeur d'adresse en automatique.
-void eMCP23S17InitVar(SPI_MODULE mSpiModule, UINT chipSelect, QWORD waitingPeriod, MCP23S17_CONFIG *var);
+#define MCP23S17_REGISTERS_INSTANCE(_header)    \
+{                                               \
+    .header = _header,                          \
+    .IODIRA = 0xff,                             \
+    .IODIRB = 0xff,                             \
+    .IPOLA = 0,                                 \
+    .IPOLB = 0,                                 \
+    .GPINTENA = 0,                              \
+    .GPINTENB = 0,                              \
+    .DEFVALA = 0,                               \
+    .DEFVALB = 0,                               \
+    .INTCONA = 0,                               \
+    .INTCONB = 0,                               \
+    .IOCON = 0,                                 \
+    .IOCONBIS = 0,                              \
+    .GPPUA = 0,                                 \
+    .GPPUB = 0,                                 \
+    .INTFA = 0,                                 \
+    .INTFB = 0,                                 \
+    .INTCAPA = 0,                               \
+    .INTCAPB = 0,                               \
+    .GPIOA = 0,                                 \
+    .GPIOB = 0,                                 \
+    .OLATA = 0,                                 \
+    .OLATB = 0,                                 \
+}
+
+#define MCP23S17_INSTANCE(_spi_module, _io_port, _io_indice, _periodic_time)                    \
+{                                                                                               \
+    .spi_params = SPI_PARAMS_INSTANCE(_spi_module, _io_port, _io_indice, _periodic_time, 0),    \
+    .read_registers = MCP23S17_REGISTERS_INSTANCE(0x0041),                                      \
+    .write_registers = MCP23S17_REGISTERS_INSTANCE(0x0040)                                      \
+}
+
+#define MCP23S17_DEF(_name, _spi_module, _cs_pin, _periodic_time)   \
+static MCP23S17_CONFIG _name = MCP23S17_INSTANCE(_spi_module, _XBR(_cs_pin), _IND(_cs_pin), _periodic_time)
+
 BYTE eMCP23S17Deamon(MCP23S17_CONFIG *var);
 
 #endif

@@ -17,81 +17,56 @@
 
 #include "../PLIB.h"
 
-extern const SPI_REGISTERS * spiModules[];
-const SPI_REGISTERS * spiModules[] =
+extern const SPI_REGISTERS * SpiModules[];
+const SPI_REGISTERS * SpiModules[] =
 {
-#if defined(_SPI1)
     (SPI_REGISTERS *)_SPI1_BASE_ADDRESS,
-#endif
-#if defined(_SPI2)
     (SPI_REGISTERS *)_SPI2_BASE_ADDRESS,
-#endif
-#if defined(_SPI3)
     (SPI_REGISTERS *)_SPI3_BASE_ADDRESS,
-#endif
-#if defined(_SPI4)
     (SPI_REGISTERS *)_SPI4_BASE_ADDRESS
-#endif
 };
 
-extern SPI_IO_DCPT spiIoDcpt[];
-SPI_IO_DCPT spiIoDcpt[] =
+SPI_IO_DCPT_PARAMS SpiIoDcpt[] =
 {
-#if defined(_SPI1)
-    {_SPI1_CLK_PORT, _SPI1_CLK_BIT, _SPI1_SDO_PORT, _SPI1_SDO_BIT, _SPI1_SDI_PORT, _SPI1_SDI_BIT, _SPI1_SS_PORT,  _SPI1_SS_BIT},
-#endif
-#if defined(_SPI2)
-    {_SPI2_CLK_PORT, _SPI2_CLK_BIT, _SPI2_SDO_PORT, _SPI2_SDO_BIT, _SPI2_SDI_PORT, _SPI2_SDI_BIT, _SPI2_SS_PORT,  _SPI2_SS_BIT },
-#endif
-#if defined(_SPI3)
-    {_SPI3_CLK_PORT, _SPI3_CLK_BIT, _SPI3_SDO_PORT, _SPI3_SDO_BIT, _SPI3_SDI_PORT, _SPI3_SDI_BIT, _SPI3_SS_PORT,  _SPI3_SS_BIT },
-#endif
-#if defined(_SPI4)
-    {_SPI4_CLK_PORT, _SPI4_CLK_BIT, _SPI4_SDO_PORT, _SPI4_SDO_BIT, _SPI4_SDI_PORT, _SPI4_SDI_BIT, _SPI4_SS_PORT,  _SPI4_SS_BIT },
-#endif
+    SPI_IO_DCPT_INSTANCE(SPI1_CLK, SPI1_SDO, SPI1_SDI, SPI1_SS),
+    SPI_IO_DCPT_INSTANCE(SPI2_CLK, SPI2_SDO, SPI2_SDI, SPI2_SS),
+    SPI_IO_DCPT_INSTANCE(SPI3_CLK, SPI3_SDO, SPI3_SDI, SPI3_SS),
+    SPI_IO_DCPT_INSTANCE(SPI4_CLK, SPI4_SDO, SPI4_SDI, SPI4_SS),
 };
 
 IRQ_SOURCE spiIrqSource[] =
 {
-#if defined(_SPI1)
     IRQ_SPI1RX,
-#endif
-#if defined(_SPI2)
     IRQ_SPI2RX,
-#endif
-#if defined(_SPI3)
     IRQ_SPI3RX,
-#endif
-#if defined(_SPI4)
     IRQ_SPI4RX
-#endif
 };
 
-void SPIInit(SPI_MODULE mSpiModule, QWORD freqHz, SPI_CONFIG config)
+void SPIInit(SPI_MODULE id, QWORD freqHz, SPI_CONFIG config)
 {
-    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)spiModules[mSpiModule];
-    QWORD dummy;
-    SPI_IO_DCPT * pDcpt = spiIoDcpt + mSpiModule;
-
-    PORTSetPinsDigitalOut(pDcpt->portSdo, pDcpt->sdoMask);
-    PORTSetPinsDigitalIn(pDcpt->portSdi, pDcpt->sdiMask);
+    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)SpiModules[id];
+    SPI_IO_DCPT_PARAMS * p_dcpt = &SpiIoDcpt[id];
+    uint32_t dummy;
+    
+    ports_reset_pin_output(p_dcpt->SDO);
+    ports_reset_pin_input(p_dcpt->SDI);
 
     if(!config&~SPI_CONF_MSTEN)
     {
-        PORTSetPinsDigitalOut(pDcpt->portSck, pDcpt->sckMask);
+        ports_reset_pin_output(p_dcpt->SCK);
     }
     else
     {
-        PORTSetPinsDigitalIn(pDcpt->portSck, pDcpt->sckMask);
+        ports_reset_pin_input(p_dcpt->SCK);
     }
 
     if(!config&~SPI_CONF_SSEN)
     {
-        PORTSetPinsDigitalIn(pDcpt->portSS, pDcpt->ssMask);
+        ports_reset_pin_input(p_dcpt->SS);
     }
 
     spiRegister->SPIxCON = 0;
-    spiRegister->SPIxBRG = ((DWORD) (PERIPHERAL_FREQ / freqHz) >> 1) - 1;
+    spiRegister->SPIxBRG = ((uint32_t) (PERIPHERAL_FREQ / freqHz) >> 1) - 1;
     dummy = spiRegister->SPIxBUF;
     spiRegister->SPIxSTATCLR = _SPI1STAT_SPIROV_MASK;
     spiRegister->SPIxCON = config;
@@ -100,46 +75,46 @@ void SPIInit(SPI_MODULE mSpiModule, QWORD freqHz, SPI_CONFIG config)
 
 void SPIEnable(SPI_MODULE mSpiModule, BOOL enable)
 {
-    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)spiModules[mSpiModule];
+    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)SpiModules[mSpiModule];
     
     spiRegister->SPIxCONbits.SPION = enable;
 }
 
-void SPIInitIOAsChipSelect(UINT chipSelect)
+void SPIInitIOAsChipSelect(_IO chip_select)
 {
-    PORTSetPinsDigitalOut(((chipSelect >> 8) & 0x000F) - 1, 1 << (chipSelect & 0x000F));
-    PORTSetBits(((chipSelect >> 8) & 0x000F) - 1, 1 << (chipSelect & 0x000F));
+    ports_reset_pin_output(chip_select);
+    ports_set_bit(chip_select);
 }
 
 DWORD SPIGetMode(SPI_MODULE mSpiModule)
 {
-    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)spiModules[mSpiModule];
+    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)SpiModules[mSpiModule];
     // return SPI_CONF_MODE8 | SPI_CONF_MODE16 | SPI_CONF_MODE32
     return (spiRegister->SPIxCON & 0x00000C00);
 }
 
 void SPISetMode(SPI_MODULE mSpiModule, SPI_CONFIG mode)
 {
-    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)spiModules[mSpiModule];
+    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)SpiModules[mSpiModule];
     spiRegister->SPIxCONbits.MODE16 = ((mode >> 10) & 0x00000001);
     spiRegister->SPIxCONbits.MODE32 = ((mode >> 11) & 0x00000001);
 }
 
 void SPISetFreq(SPI_MODULE mSpiModule, QWORD freqHz)
 {
-    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)spiModules[mSpiModule];
+    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)SpiModules[mSpiModule];
     spiRegister->SPIxBRG = ((DWORD) (PERIPHERAL_FREQ / freqHz) >> 1) - 1;
 }
 
 QWORD SPIGetFreq(SPI_MODULE mSpiModule)
 {
-    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)spiModules[mSpiModule];
+    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)SpiModules[mSpiModule];
     return (QWORD) (PERIPHERAL_FREQ/(2*(spiRegister->SPIxBRG + 1)));
 }
 
 BOOL SPIIsRxAvailable(SPI_MODULE mSpiModule)
 {
-    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)spiModules[mSpiModule];
+    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)SpiModules[mSpiModule];
     
     if(spiRegister->SPIxCONbits.ENHBUF)
     {
@@ -153,7 +128,7 @@ BOOL SPIIsRxAvailable(SPI_MODULE mSpiModule)
 
 BOOL SPIIsTxAvailable(SPI_MODULE mSpiModule)
 {
-    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)spiModules[mSpiModule];
+    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)SpiModules[mSpiModule];
 
     if(spiRegister->SPIxCONbits.ENHBUF)
     {
@@ -165,24 +140,24 @@ BOOL SPIIsTxAvailable(SPI_MODULE mSpiModule)
     }
 }
 
-BOOL SPIWriteAndStore(SPI_MODULE spi_module, UINT chip_select, DWORD txData, DWORD* rxData, BOOL releaseChipSelect)
+BOOL SPIWriteAndStore(SPI_MODULE spi_module, _IO chip_select, uint32_t txData, uint32_t* rxData, bool releaseChipSelect)
 {
     if(SPIIsTxAvailable(spi_module))
     {
-        SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)spiModules[spi_module];
+        SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)SpiModules[spi_module];
         SPIPointerDwordDataReceived[spi_module] = rxData;
         SPICurrentChipSelect[spi_module] = chip_select;
         SPIReleaseChipSelect[spi_module] = releaseChipSelect;
-        PORTClearBits(((chip_select >> 8) & 0x000F) - 1, 1 << (chip_select & 0x000F));
+        ports_clr_bit(chip_select);
         spiRegister->SPIxBUF = txData;
         return 1;
     }
     return 0;
 }
 
-BYTE SPIWriteAndStore8_16_32(SPI_MODULE spi_module, UINT chip_select, DWORD txData, DWORD *rxData, SPI_CONFIG confMode)
+BYTE SPIWriteAndStore8_16_32(SPI_MODULE spi_module, _IO chip_select, uint32_t txData, uint32_t *rxData, SPI_CONFIG confMode)
 {
-    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)spiModules[spi_module];
+    SPI_REGISTERS * spiRegister = (SPI_REGISTERS *)SpiModules[spi_module];
     static BYTE functionState[SPI_NUMBER_OF_MODULES] = {0};
     
     switch(functionState[spi_module])
@@ -192,7 +167,7 @@ BYTE SPIWriteAndStore8_16_32(SPI_MODULE spi_module, UINT chip_select, DWORD txDa
             SPIPointerDwordDataReceived[spi_module] = rxData;
             SPICurrentChipSelect[spi_module] = chip_select;
             SPIReleaseChipSelect[spi_module] = TRUE;
-            PORTClearBits(((chip_select >> 8) & 0x000F) - 1, 1 << (chip_select & 0x000F));
+            ports_clr_bit(chip_select);
             functionState[spi_module]++;
         case 1:
             if((!spiRegister->SPIxCONbits.ENHBUF && spiRegister->SPIxSTATbits.SPITBE) || (spiRegister->SPIxCONbits.ENHBUF && !spiRegister->SPIxSTATbits.SPITBF))
@@ -202,7 +177,7 @@ BYTE SPIWriteAndStore8_16_32(SPI_MODULE spi_module, UINT chip_select, DWORD txDa
             }
             break;
         case 2:
-            if(((PORTReadBits(((chip_select >> 8) & 0x000F) - 1, 1 << (chip_select & 0x000F)) >> (chip_select & 0x000F)) & 0x0001))
+            if (ports_get_bit(chip_select))
             {
                 functionState[spi_module] = 0;
             }
@@ -212,9 +187,9 @@ BYTE SPIWriteAndStore8_16_32(SPI_MODULE spi_module, UINT chip_select, DWORD txDa
     return functionState[spi_module];
 }
 
-BYTE SPIWriteAndStoreByteArray(SPI_MODULE spi_module, UINT chip_select, void *txBuffer, void *rxBuffer, DWORD size)
+BYTE SPIWriteAndStoreByteArray(SPI_MODULE spi_module, _IO chip_select, void *txBuffer, void *rxBuffer, uint32_t size)
 {
-    SPI_REGISTERS *spiRegister = (SPI_REGISTERS *)spiModules[spi_module];
+    SPI_REGISTERS *spiRegister = (SPI_REGISTERS *)SpiModules[spi_module];
     static BYTE functionState[SPI_NUMBER_OF_MODULES] = {0};
     static QWORD tickEOT[SPI_NUMBER_OF_MODULES] = {0};
     static QWORD periodEOT[SPI_NUMBER_OF_MODULES] = {0};
@@ -222,7 +197,6 @@ BYTE SPIWriteAndStoreByteArray(SPI_MODULE spi_module, UINT chip_select, void *tx
     switch(functionState[spi_module])
     {
         case 0:
-            IRQEnable(spiIrqSource[spi_module], IRQ_DISABLED);
             spiRegister->SPIxCONbits.MODE16 = ((SPI_CONF_MODE8 >> 10) & 0x00000001);
             spiRegister->SPIxCONbits.MODE32 = ((SPI_CONF_MODE8 >> 11) & 0x00000001);
             SPICurrentChipSelect[spi_module] = chip_select;
@@ -234,7 +208,7 @@ BYTE SPIWriteAndStoreByteArray(SPI_MODULE spi_module, UINT chip_select, void *tx
                 DmaChnSetTxfer(DMA_CHANNEL4+spi_module, (void*)&spiRegister->SPIxBUF, (void*)rxBuffer, 1, size, 1);
             }
             
-            PORTClearBits(((chip_select >> 8) & 0x000F) - 1, 1 << (chip_select & 0x000F));
+            ports_clr_bit(chip_select);
             DmaChnEnable(DMA_CHANNEL4+spi_module);                         // Enable the DMA channel
             DmaChnStartTxfer(DMA_CHANNEL0+spi_module, DMA_WAIT_NOT, 0);    // Force the DMA transfer
             
@@ -245,9 +219,8 @@ BYTE SPIWriteAndStoreByteArray(SPI_MODULE spi_module, UINT chip_select, void *tx
             // Do nothing .. just wait the end of transmission
             if(mTickCompare(tickEOT[spi_module]) >= periodEOT[spi_module])
             {
-                PORTSetBits(((chip_select >> 8) & 0x000F) - 1, 1 << (chip_select & 0x000F));
-                IRQClearFlag(spiIrqSource[spi_module]);
-                IRQEnable(spiIrqSource[spi_module], IRQ_ENABLED);
+                ports_set_bit(chip_select);
+                irq_clr_flag(spiIrqSource[spi_module]);
                 DmaChnAbortTxfer(DMA_CHANNEL4+spi_module);
                 DmaChnDisable(DMA_CHANNEL4+spi_module);
                 functionState[spi_module] = 0;

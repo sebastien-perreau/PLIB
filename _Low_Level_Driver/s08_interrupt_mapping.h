@@ -143,13 +143,13 @@ typedef enum
     IRQ_ETHERNET,           // Ethernet
 
     IRQ_NUM                 // Number of available interrupt sources
-}IRQ_SOURCE;
+} IRQ_SOURCE;
 
 typedef enum
 {
     IRQ_DISABLED = 0,
     IRQ_ENABLED = 1
-}IRQ_EN_DIS;
+} IRQ_EN_DIS;
 
 typedef enum
 {
@@ -161,7 +161,7 @@ typedef enum
     IRQ_PRIORITY_LEVEL_5 = 5,
     IRQ_PRIORITY_LEVEL_6 = 6,
     IRQ_PRIORITY_LEVEL_7 = 7
-}IRQ_PRIORITY;
+} IRQ_PRIORITY;
 
 typedef enum
 {
@@ -169,17 +169,42 @@ typedef enum
     IRQ_SUB_PRIORITY_LEVEL_1 =   1,
     IRQ_SUB_PRIORITY_LEVEL_2 =   2,
     IRQ_SUB_PRIORITY_LEVEL_3 =   3
-}IRQ_SUB_PRIORITY;
+} IRQ_SUB_PRIORITY;
 
-#define IRQInit(a, b, c, d)       (IRQEnable(a, IRQ_DISABLED), IRQSetPriority(a, c), IRQSetSubPriority(a, d), IRQClearFlag(a), IRQEnable(a, b))
-void IRQClearFlag(IRQ_SOURCE source);
-void IRQSetFlag(IRQ_SOURCE source);
-UINT IRQGetFlag(IRQ_SOURCE source);
-void IRQEnable(IRQ_SOURCE source, BOOL enable);
-UINT IRQGetEnable(IRQ_SOURCE source);
-void IRQSetPriority(IRQ_SOURCE source, UINT priority);
-UINT IRQGetPriority(IRQ_SOURCE source);
-void IRQSetSubPriority(IRQ_SOURCE source, UINT subPriority);
-UINT INTGetSubPriority(IRQ_SOURCE source);
+typedef enum
+{
+    REG = 0,
+    REG_CLR,
+    REG_SET,
+    REG_INV
+} _ENUM_REGISTER;
+
+typedef struct
+{
+    volatile uint32_t	*IFS;
+    volatile uint32_t	*IEC;
+    volatile uint32_t	*IPC;
+    volatile uint32_t	MASK;
+    volatile uint32_t	SUB_PRI_POS;
+    volatile uint32_t   PRI_POS;
+} IRQ_REGISTERS;
+
+#define IRQInit(source, enable, priority, sub_priority)     \
+            (                                               \
+            irq_enable(source, IRQ_DISABLED),               \
+            irq_set_priority(source, priority),             \
+            irq_set_sub_priority(source, sub_priority),     \
+            irq_clr_flag(source),                           \
+            irq_enable(source, enable)                      \
+            )
+            
+void irq_clr_flag(IRQ_SOURCE source);
+void irq_set_flag(IRQ_SOURCE source);
+uint32_t irq_get_flag(IRQ_SOURCE source);
+void irq_enable(IRQ_SOURCE source, bool enable);
+void irq_set_priority(IRQ_SOURCE source, IRQ_PRIORITY priority);
+IRQ_PRIORITY irq_get_priority(IRQ_SOURCE source);
+void irq_set_sub_priority(IRQ_SOURCE source, IRQ_SUB_PRIORITY sub_priority);
+IRQ_SUB_PRIORITY irq_get_sub_priority(IRQ_SOURCE source);
 
 #endif

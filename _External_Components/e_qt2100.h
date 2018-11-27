@@ -82,38 +82,38 @@ typedef enum
     SM_QT2100_SEND_SECOND_BYTE,
     SM_QT2100_SEND_THIRD_BYTE,
     SM_QT2100_TREATMENT_DATA
-}QT2100_SM;
+} QT2100_SM;
 
 typedef struct
 {
-    BYTE infos;                     // BYTE 0   - READ ONLY
-    BYTE keys;                      // BYTE 1   - READ ONLY
-    BYTE slider;                    // BYTE 2   - READ ONLY
-}QT2100_NORMAL_EXCHANGE_PARAMS;
+    uint8_t infos;                     // BYTE 0   - READ ONLY
+    uint8_t keys;                      // BYTE 1   - READ ONLY
+    uint8_t slider;                    // BYTE 2   - READ ONLY
+} QT2100_NORMAL_EXCHANGE_PARAMS;
 
 typedef struct
 {
-    BYTE devideID;                  // BYTE 0   - READ ONLY
-    BYTE version;                   // BYTE 1   - READ ONLY
-    BYTE build;                     // BYTE 2   - READ ONLY
-}QT2100_DEVICE_VERSION_PARAMS;
+    uint8_t devideID;                  // BYTE 0   - READ ONLY
+    uint8_t version;                   // BYTE 1   - READ ONLY
+    uint8_t build;                     // BYTE 2   - READ ONLY
+} QT2100_DEVICE_VERSION_PARAMS;
 
 typedef struct
 {
-    BYTE state_channel[10];         // BYTE 0   - READ ONLY
-    BYTE debug_lsb[10];             // BYTE 1   - READ ONLY
-    BYTE debug_msb[10];             // BYTE 2   - READ ONLY
-}QT2100_DEBUG_DATA_PARAMS;
+    uint8_t state_channel[10];         // BYTE 0   - READ ONLY
+    uint8_t debug_lsb[10];             // BYTE 1   - READ ONLY
+    uint8_t debug_msb[10];             // BYTE 2   - READ ONLY
+} QT2100_DEBUG_DATA_PARAMS;
 
 typedef struct
 {
-    DWORD paramsDevice;
-    BYTE debugIndice;
-    BYTE current_mode;
-    BYTE previous_mode;
-    DWORD data_out[3];
-    DWORD data_in[3];
-}QT2100_DEAMON_PARAMS;
+    uint32_t    paramsDevice;
+    uint8_t     debugIndice;
+    uint8_t     current_mode;
+    uint8_t     previous_mode;
+    uint32_t    data_out[3];
+    uint32_t    data_in[3];
+} QT2100_DEAMON_PARAMS;
 
 typedef struct
 {
@@ -122,9 +122,30 @@ typedef struct
     QT2100_DEVICE_VERSION_PARAMS    device_version;
     QT2100_DEBUG_DATA_PARAMS        debug_data;
     QT2100_DEAMON_PARAMS            deamon_params;
-}QT2100_PARAMS;
+} QT2100_CONFIG;
 
-void eQT2100Init(SPI_MODULE mSpiModule, UINT chipSelect, QWORD waitingPeriod, QT2100_PARAMS *var, DWORD config);
-void eQT2100Deamon(QT2100_PARAMS *config);
+#define QT2100_DEAMON_INSTANCE(_config)                         \
+{                                                               \
+    .paramsDevice = _config | (CUSTOM_THRESHOLD_DEFAULT << 24), \
+    .debugIndice = 0,                                           \
+    .current_mode = DEVICE_VERSION_MODE,                        \
+    .previous_mode = 0xff,                                      \
+    .data_out = {0},                                            \
+    .data_in = {0}                                              \
+}
+
+#define QT2100_INSTANCE(_spi_module, _io_port, _io_indice, _periodic_time, _config)             \
+{                                                                                               \
+    .spi_params = SPI_PARAMS_INSTANCE(_spi_module, _io_port, _io_indice, _periodic_time, 2),    \
+    .normal_exchange = {0},                                                                     \
+    .device_version = {0},                                                                      \
+    .debug_data = {0},                                                                          \
+    .deamon_params = QT2100_DEAMON_INSTANCE(_config)                                            \
+}
+
+#define QT2100_DEF(_name, _spi_module, _cs_pin, _periodic_time, _config)    \
+static QT2100_CONFIG _name = QT2100_INSTANCE(_spi_module, _XBR(_cs_pin), _IND(_cs_pin), _periodic_time, _config)
+
+void eQT2100Deamon(QT2100_CONFIG *config);
 
 #endif

@@ -3,133 +3,38 @@
 
 #include "../_High_Level_Driver/utilities.h"
 
-volatile DWORD  *SPIPointerDwordDataReceived[4];
-volatile UINT   SPICurrentChipSelect[4];
-volatile BOOL   SPIReleaseChipSelect[4];
+volatile uint32_t   *SPIPointerDwordDataReceived[4];
+volatile _IO        SPICurrentChipSelect[4];
+volatile bool       SPIReleaseChipSelect[4];
 
-#define SPI1    SPI1
-#define SPI1A   SPI3
-#define SPI2A   SPI2
-#define SPI3A   SPI4
+#define SPI1_CLK    __PD10
+#define SPI1_SDO    __PD0
+#define SPI1_SDI    __PC4
+#define SPI1_SS     __PD9
 
-#define csRA0   0x0100
-#define csRA1   0x0101
-#define csRA2   0x0102
-#define csRA3   0x0103
-#define csRA4   0x0104
-#define csRA5   0x0105
-#define csRA6   0x0106
-#define csRA7   0x0107
-#define csRA8   0x0108
-#define csRA9   0x0109
-#define csRA10  0x010A
-#define csRA11  0x010B
-#define csRA12  0x010C
-#define csRA13  0x010D
-#define csRA14  0x010E
-#define csRA15  0x010F
+#define SPI2_CLK    __PG6
+#define SPI2_SDO    __PG8
+#define SPI2_SDI    __PG7
+#define SPI2_SS     __PG9
 
-#define csRB0   0x0200
-#define csRB1   0x0201
-#define csRB2   0x0202
-#define csRB3   0x0203
-#define csRB4   0x0204
-#define csRB5   0x0205
-#define csRB6   0x0206
-#define csRB7   0x0207
-#define csRB8   0x0208
-#define csRB9   0x0209
-#define csRB10  0x020A
-#define csRB11  0x020B
-#define csRB12  0x020C
-#define csRB13  0x020D
-#define csRB14  0x020E
-#define csRB15  0x020F
+#define SPI3_CLK    __PD15
+#define SPI3_SDO    __PF8
+#define SPI3_SDI    __PF2
+#define SPI3_SS     __PD14
 
-#define csRC0   0x0300
-#define csRC1   0x0301
-#define csRC2   0x0302
-#define csRC3   0x0303
-#define csRC4   0x0304
-#define csRC5   0x0305
-#define csRC6   0x0306
-#define csRC7   0x0307
-#define csRC8   0x0308
-#define csRC9   0x0309
-#define csRC10  0x030A
-#define csRC11  0x030B
-#define csRC12  0x030C
-#define csRC13  0x030D
-#define csRC14  0x030E
-#define csRC15  0x030F
+#define SPI4_CLK    __PF13
+#define SPI4_SDO    __PF5
+#define SPI4_SDI    __PF4
+#define SPI4_SS     __PF12
 
-#define csRD0   0x0400
-#define csRD1   0x0401
-#define csRD2   0x0402
-#define csRD3   0x0403
-#define csRD4   0x0404
-#define csRD5   0x0405
-#define csRD6   0x0406
-#define csRD7   0x0407
-#define csRD8   0x0408
-#define csRD9   0x0409
-#define csRD10  0x040A
-#define csRD11  0x040B
-#define csRD12  0x040C
-#define csRD13  0x040D
-#define csRD14  0x040E
-#define csRD15  0x040F
-
-#define csRE0   0x0500
-#define csRE1   0x0501
-#define csRE2   0x0502
-#define csRE3   0x0503
-#define csRE4   0x0504
-#define csRE5   0x0505
-#define csRE6   0x0506
-#define csRE7   0x0507
-#define csRE8   0x0508
-#define csRE9   0x0509
-#define csRE10  0x050A
-#define csRE11  0x050B
-#define csRE12  0x050C
-#define csRE13  0x050D
-#define csRE14  0x050E
-#define csRE15  0x050F
-
-#define csRF0   0x0600
-#define csRF1   0x0601
-#define csRF2   0x0602
-#define csRF3   0x0603
-#define csRF4   0x0604
-#define csRF5   0x0605
-#define csRF6   0x0606
-#define csRF7   0x0607
-#define csRF8   0x0608
-#define csRF9   0x0609
-#define csRF10  0x060A
-#define csRF11  0x060B
-#define csRF12  0x060C
-#define csRF13  0x060D
-#define csRF14  0x060E
-#define csRF15  0x060F
-
-#define csRG0   0x0700
-#define csRG1   0x0701
-#define csRG2   0x0702
-#define csRG3   0x0703
-#define csRG4   0x0704
-#define csRG5   0x0705
-#define csRG6   0x0706
-#define csRG7   0x0707
-#define csRG8   0x0708
-#define csRG9   0x0709
-#define csRG10  0x070A
-#define csRG11  0x070B
-#define csRG12  0x070C
-#define csRG13  0x070D
-#define csRG14  0x070E
-#define csRG15  0x070F
+typedef enum
+{
+    SPI1 = 0,
+    SPI2,
+    SPI3,
+    SPI4,
+    SPI_NUMBER_OF_MODULES
+} SPI_MODULE;
 
 // Getting a valid SPI channel definition.
 #undef  _SPI_DEF_CHN_
@@ -159,7 +64,7 @@ typedef enum
     SPI_CONF_FRMPOL_LOW =               0,                          // Master driven SS output active low.
 
     // slave configuration
-    SPI_CONF_SLVEN =                    0,              // set the Slave mode
+    SPI_CONF_SLVEN =                    0,                          // set the Slave mode
     SPI_CONF_SSEN  =                    _SPIxCON_MASK_(SSEN_MASK),  // enable the SS input pin.
 
     // clocking configuration
@@ -207,30 +112,12 @@ typedef enum
 
     SPI_CONF_ON =                       _SPIxCON_MASK_(ON_MASK),
     SPI_CONF_OFF =                      (0),
-}SPI_CONFIG;
+} SPI_CONFIG;
 
-// ----------------------------------------
-// ---------- Defines of typedef ----------
-// ----------------------------------------
-typedef enum
+typedef union 
 {
-#if defined(_SPI1)
-    SPI1 = 0,
-#endif
-#if defined(_SPI2)
-    SPI2,
-#endif
-#if defined(_SPI3)
-    SPI3,
-#endif
-#if defined(_SPI4)
-    SPI4,
-#endif
-    SPI_NUMBER_OF_MODULES
-}SPI_MODULE;
-
-typedef union {
-  struct {
+  struct 
+  {
     unsigned SRXISEL:2;
     unsigned STXISEL:2;
     unsigned DISSDI:1;      // Available only for PIC32MX1XX/2XX
@@ -256,13 +143,16 @@ typedef union {
     unsigned FRMSYNC:1;
     unsigned FRMEN:1;
   };
-  struct {
+  struct 
+  {
     unsigned w:32;
   };
 } __SPIxCONbits_t;
 
-typedef union {
-  struct {
+typedef union 
+{
+  struct 
+  {
     unsigned SPIRBF:1;
     unsigned SPITBF:1;
     unsigned :1;
@@ -279,21 +169,25 @@ typedef union {
     unsigned :3;
     unsigned RXBUFELM:5;
   };
-  struct {
+  struct 
+  {
     unsigned w:32;
   };
 } __SPIxSTATbits_t;
 
-typedef struct {
-    union {
-	volatile UINT32 SPIxCON;
-	volatile __SPIxCONbits_t SPIxCONbits;
+typedef struct 
+{
+    union 
+    {
+        volatile UINT32 SPIxCON;
+        volatile __SPIxCONbits_t SPIxCONbits;
     };
     volatile UINT32 SPIxCONCLR;
     volatile UINT32 SPIxCONSET;
     volatile UINT32 SPIxCONINV;
 
-    union {
+    union 
+    {
         volatile UINT32 SPIxSTAT;
         volatile __SPIxSTATbits_t SPIxSTATbits;
     };
@@ -312,34 +206,36 @@ typedef struct {
 
 typedef struct
 {
-    UINT portSck;
-    UINT sckMask;
+    _IO SCK;
+    _IO SDO;
+    _IO SDI;
+    _IO SS;
+} SPI_IO_DCPT_PARAMS;
 
-    UINT portSdo;
-    UINT sdoMask;
-
-    UINT portSdi;
-    UINT sdiMask;
-
-    UINT portSS;
-    UINT ssMask;
-}SPI_IO_DCPT;
-
+#define SPI_IO_DCPT_INSTANCE2(_sck_io_port, _sck_io_indice, _sdo_io_port, _sdo_io_indice, _sdi_io_port, _sdi_io_indice, _ss_io_port, _ss_io_indice)             \
+{                                               \
+    .SCK = { _sck_io_port, _sck_io_indice },    \
+    .SDO = { _sdo_io_port, _sdo_io_indice },    \
+    .SDI = { _sdi_io_port, _sdi_io_indice },    \
+    .SS = { _ss_io_port, _ss_io_indice },       \
+}
+#define SPI_IO_DCPT_INSTANCE(_sck, _sdo, _sdi, _ss)         SPI_IO_DCPT_INSTANCE2(_XBR(_sck), _IND(_sck), _XBR(_sdo), _IND(_sdo), _XBR(_sdi), _IND(_sdi), _XBR(_ss), _IND(_ss))
+    
 typedef struct
 {
-    uint8_t                 spi_module;
-    uint16_t                chip_select;
-    bool                    is_chip_select_init;
+    SPI_MODULE              spi_module;
+    _IO                     chip_select;
+    bool                    is_chip_select_initialize;
     BUS_MANAGEMENT_PARAMS   bus_management_params;
     uint32_t                flags;
     state_machine_t         state_machine;
-}SPI_PARAMS;
+} SPI_PARAMS;
 
-#define SPI_PARAMS_INSTANCE(_spi_module, _chip_select, _periodic_time, _flags)             \
+#define SPI_PARAMS_INSTANCE(_spi_module, _io_port, _io_indice, _periodic_time, _flags)             \
 {                                                   \
     .spi_module = _spi_module,                      \
-    .chip_select = _chip_select,                    \
-    .is_chip_select_init = false,                   \
+    .chip_select = { _io_port, _io_indice },        \
+    .is_chip_select_initialize = false,             \
     .bus_management_params =                        \
     {                                               \
         .is_running = false,                        \
@@ -350,10 +246,9 @@ typedef struct
     .state_machine = {0}                            \
 }
 
-
-void SPIInit(SPI_MODULE mSpiModule, QWORD freqHz, SPI_CONFIG config);
+void SPIInit(SPI_MODULE id, QWORD freqHz, SPI_CONFIG config);
 void SPIEnable(SPI_MODULE mSpiModule, BOOL enable);
-void SPIInitIOAsChipSelect(UINT chipSelect);
+void SPIInitIOAsChipSelect(_IO chip_select);
 DWORD SPIGetMode(SPI_MODULE mSpiModule);
 void SPISetMode(SPI_MODULE mSpiModule, SPI_CONFIG mode);
 void SPISetFreq(SPI_MODULE mSpiModule, QWORD freqHz);
@@ -361,8 +256,8 @@ QWORD SPIGetFreq(SPI_MODULE mSpiModule);
 BOOL SPIIsRxAvailable(SPI_MODULE mSpiModule);
 BOOL SPIIsTxAvailable(SPI_MODULE mSpiModule);
 
-BOOL SPIWriteAndStore(SPI_MODULE mSpiModule, UINT chipSelect, DWORD txData, DWORD* rxData, BOOL releaseChipSelect);
-BYTE SPIWriteAndStore8_16_32(SPI_MODULE spi_module, UINT chip_select, DWORD txData, DWORD *rxData, SPI_CONFIG confMode);
-BYTE SPIWriteAndStoreByteArray(SPI_MODULE spi_module, UINT chip_select, void *txBuffer, void *rxBuffer, DWORD size);
+BOOL SPIWriteAndStore(SPI_MODULE mSpiModule, _IO chip_select, uint32_t txData, uint32_t* rxData, bool releaseChipSelect);
+BYTE SPIWriteAndStore8_16_32(SPI_MODULE spi_module, _IO chip_select, uint32_t txData, uint32_t *rxData, SPI_CONFIG confMode);
+BYTE SPIWriteAndStoreByteArray(SPI_MODULE spi_module, _IO chip_select, void *txBuffer, void *rxBuffer, uint32_t size);
 
 #endif

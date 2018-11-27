@@ -24,62 +24,67 @@ void ble_init(ble_params_t * p_ble_params)
     IRQInit(IRQ_DMA2, IRQ_ENABLED, IRQ_PRIORITY_LEVEL_3, IRQ_SUB_PRIORITY_LEVEL_1);
     DmaChnSetEventControl(DMA_CHANNEL2, DMA_EV_START_IRQ(_UART4_TX_IRQ));
     
-    exp_uart_init(EXP_UART4, 1000000, EXP_UART_STD_PARAMS);
-    IRQInit(IRQ_U1E + EXP_UART4, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_3, IRQ_SUB_PRIORITY_LEVEL_1);
-    IRQInit(IRQ_U1TX + EXP_UART4, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_3, IRQ_SUB_PRIORITY_LEVEL_1);
-    IRQInit(IRQ_U1RX + EXP_UART4, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_5, IRQ_SUB_PRIORITY_LEVEL_1);
+    exp_uart_init(EXP_UART4, EXP_UART_BAUDRATE_1M, EXP_UART_STD_PARAMS);
+    IRQInit(IRQ_U1E + EXP_UART4, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_5, IRQ_SUB_PRIORITY_LEVEL_1);
+    IRQInit(IRQ_U1TX + EXP_UART4, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_5, IRQ_SUB_PRIORITY_LEVEL_1);
+    IRQInit(IRQ_U1RX + EXP_UART4, IRQ_ENABLED, IRQ_PRIORITY_LEVEL_5, IRQ_SUB_PRIORITY_LEVEL_1);
     
     p_ble = p_ble_params;
     p_ble->flags.set_name = 1;
 }
 
-void __ISR(_DMA_2_VECTOR, IPL3SOFT) DmaHandler2(void)
+void __ISR(_DMA_2_VECTOR, IPL3SOFT) Dma2Handler(void)
 {
     p_ble->uart.dma_tx_in_progress = false;
-    IRQClearFlag(IRQ_DMA2);
+    irq_clr_flag(IRQ_DMA2);
+}
+
+void __ISR(_UART_4_VECTOR, IPL5SOFT) Uart4Handler(void)
+{
+    p_ble->uart.receive_in_progress = true;
+    p_ble->uart.tick = mGetTick();
+    p_ble->uart.buffer[p_ble->uart.index] = (uint8_t) (U4RXREG);
+    p_ble->uart.index++;
+    irq_clr_flag(IRQ_U4RX);
 }
 
 void ble_stack_tasks()
 {    
     p_ble->uart.transmit_in_progress = (p_ble->uart.dma_tx_in_progress | !U4STAbits.TRMT);
-    if (U4STAbits.URXDA)
-    {
-        p_ble->uart.receive_in_progress = true;
-        p_ble->uart.tick = mGetTick();
-        p_ble->uart.buffer[p_ble->uart.index] = (uint8_t) (U4RXREG);
-        p_ble->uart.index++;
-    }
     
-    if (mTickCompare(p_ble->uart.tick) >= TICK_300US)
+    if (p_ble->uart.index > 0)
     {
-        if (	(p_ble->uart.index == 3) && \
-                (p_ble->uart.buffer[0] == 'A') && \
-                (p_ble->uart.buffer[1] == 'C') && \
-                (p_ble->uart.buffer[2] == 'K'))
+        if (mTickCompare(p_ble->uart.tick) >= TICK_300US)
         {
-            p_ble->uart.message_type = UART_ACK_MESSAGE;
+            if (	(p_ble->uart.index == 3) && \
+                    (p_ble->uart.buffer[0] == 'A') && \
+                    (p_ble->uart.buffer[1] == 'C') && \
+                    (p_ble->uart.buffer[2] == 'K'))
+            {
+                p_ble->uart.message_type = UART_ACK_MESSAGE;
+            }
+            else if (	(p_ble->uart.index == 4) && \
+                        (p_ble->uart.buffer[0] == 'N') && \
+                        (p_ble->uart.buffer[1] == 'A') && \
+                        (p_ble->uart.buffer[2] == 'C') && \
+                        (p_ble->uart.buffer[3] == 'K'))
+            {
+                p_ble->uart.message_type = UART_NACK_MESSAGE;
+            }
+            else if (	(p_ble->uart.index > 5) && \
+                        ((p_ble->uart.buffer[1] == BLE_TYPE_WRITE) || \
+                        (p_ble->uart.buffer[1] == BLE_TYPE_READ) || \
+                        (p_ble->uart.buffer[1] == BLE_TYPE_DIRECT_READ)))
+            {
+                p_ble->uart.message_type = UART_NEW_MESSAGE;
+            }
+            else
+            {
+                p_ble->uart.message_type = UART_OTHER_MESSAGE;
+            }
+            p_ble->uart.index = 0;
+            p_ble->uart.receive_in_progress = false;
         }
-        else if (	(p_ble->uart.index == 4) && \
-                    (p_ble->uart.buffer[0] == 'N') && \
-                    (p_ble->uart.buffer[1] == 'A') && \
-                    (p_ble->uart.buffer[2] == 'C') && \
-                    (p_ble->uart.buffer[3] == 'K'))
-        {
-            p_ble->uart.message_type = UART_NACK_MESSAGE;
-        }
-        else if (	(p_ble->uart.index > 5) && \
-                    ((p_ble->uart.buffer[1] == BLE_TYPE_WRITE) || \
-					(p_ble->uart.buffer[1] == BLE_TYPE_READ) || \
-					(p_ble->uart.buffer[1] == BLE_TYPE_DIRECT_READ)))
-        {
-            p_ble->uart.message_type = UART_NEW_MESSAGE;
-        }
-        else
-        {
-            p_ble->uart.message_type = UART_OTHER_MESSAGE;
-        }
-        p_ble->uart.index = 0;
-        p_ble->uart.receive_in_progress = false;
     }
     
     if (p_ble->uart.message_type == UART_NEW_MESSAGE)

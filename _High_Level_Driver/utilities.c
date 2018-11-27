@@ -32,7 +32,7 @@ void fu_switch(SWITCH_VAR *var)
 {
     if (!var->is_initialization_done)
     {
-        ports_reset_pin(var->io);
+        ports_reset_pin_input(var->io);
         var->is_initialization_done = true;
     }
     else
@@ -84,8 +84,8 @@ void fu_encoder(ENCODER_VAR *var)
 {
     if (!var->is_initialization_done)
     {
-        ports_reset_pin(var->io[0]);
-        ports_reset_pin(var->io[1]);
+        ports_reset_pin_input(var->io[0]);
+        ports_reset_pin_input(var->io[1]);
         var->is_initialization_done = true;
     }
     else

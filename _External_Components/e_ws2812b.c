@@ -1,7 +1,20 @@
 /*********************************************************************
 *	External intelligent LED WS2812B
 *	Author : Sébastien PERREAU
-*   Example : ...
+*
+*   Characteristics:
+*   --------------- 
+*   DC Voltage = 5V (led in IDLE mode = 400uA)
+*   I_red = 12mA / I_green = 12mA / I_blue = 12mA
+*   I_cyan = 24mA / I_orange = 24mA / I_purple = 24mA
+*   I_white = 36mA
+*   P_max (white color) = 180mW 
+* 
+*   Number of led by power supply:
+*   ----------------------------- 
+*   5V 1A (5W)	: 27 leds
+*   5V 5A (25W)	: 135 leds
+*   5V 8A (40W)	: 220 leds
 *
 *	Revision history	:
 *		30/08/2016		- Initial release 1.00
@@ -20,7 +33,7 @@
 
 #include "../PLIB.h"
 
-#warning "e_ws2812b.c - SPI Frequency should be equal to 2,4MHz"
+#warning "e_ws2812b.c - SPI Frequency should be equal to 2,4MHz & SPI interruption should be disable"
 
 /*******************************************************************************
   Function:

@@ -13,7 +13,7 @@
 
 #include "../PLIB.h"
 
-static UART_MODULE module_id;
+static EXP_UART_MODULE module_id;
 static bool dma_tx_in_progress = false;
 const uint8_t uart_tx_irq[] = 
 {
@@ -34,7 +34,7 @@ const void *p_tx_reg[] =
     (void*)&U6TXREG
 };
 
-void log_init(UART_MODULE id, uint32_t data_rate)
+void log_init(EXP_UART_MODULE id, uint32_t data_rate)
 {
     module_id = id;
     
@@ -137,9 +137,9 @@ void log_wait_end_of_transmission()
 {
     while (dma_tx_in_progress)
     {
-        if (IRQGetFlag(IRQ_DMA6))
+        if (irq_get_flag(IRQ_DMA6))
         {
-            IRQClearFlag(IRQ_DMA6);
+            irq_clr_flag(IRQ_DMA6);
             dma_tx_in_progress = false;
         }
     }

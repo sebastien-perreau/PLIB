@@ -14,12 +14,12 @@
       <logicalFolder name="_External_Components"
                      displayName="_External_Components"
                      projectFiles="true">
-        <itemPath>../_External_Components/e_eeprom.h</itemPath>
         <itemPath>../_External_Components/e_mcp23s17.h</itemPath>
         <itemPath>../_External_Components/e_ws2812b.h</itemPath>
         <itemPath>../_External_Components/e_amis30621.h</itemPath>
         <itemPath>../_External_Components/e_qt2100.h</itemPath>
         <itemPath>../_External_Components/e_tmc429.h</itemPath>
+        <itemPath>../_External_Components/e_25lc512.h</itemPath>
       </logicalFolder>
       <logicalFolder name="_High_Level_Driver"
                      displayName="_High_Level_Driver"
@@ -37,7 +37,6 @@
         <itemPath>../_Low_Level_Driver/s08_interrupt_mapping.h</itemPath>
         <itemPath>../_Low_Level_Driver/s23_spi.h</itemPath>
         <itemPath>../_Low_Level_Driver/s17_adc.h</itemPath>
-        <itemPath>../_Low_Level_Driver/s21_uart.h</itemPath>
         <itemPath>../_Low_Level_Driver/s16_output_compare.h</itemPath>
         <itemPath>../_Low_Level_Driver/s24_i2c.h</itemPath>
         <itemPath>../_Low_Level_Driver/s34_can.h</itemPath>
@@ -69,12 +68,12 @@
       <logicalFolder name="_External_Components"
                      displayName="_External_Components"
                      projectFiles="true">
-        <itemPath>../_External_Components/e_eeprom.c</itemPath>
         <itemPath>../_External_Components/e_mcp23s17.c</itemPath>
         <itemPath>../_External_Components/e_ws2812b.c</itemPath>
         <itemPath>../_External_Components/e_amis30621.c</itemPath>
         <itemPath>../_External_Components/e_qt2100.c</itemPath>
         <itemPath>../_External_Components/e_tmc429.c</itemPath>
+        <itemPath>../_External_Components/e_25lc512.c</itemPath>
       </logicalFolder>
       <logicalFolder name="_High_Level_Driver"
                      displayName="_High_Level_Driver"
@@ -92,7 +91,6 @@
         <itemPath>../_Low_Level_Driver/s08_interrupt_mapping.c</itemPath>
         <itemPath>../_Low_Level_Driver/s23_spi.c</itemPath>
         <itemPath>../_Low_Level_Driver/s17_adc.c</itemPath>
-        <itemPath>../_Low_Level_Driver/s21_uart.c</itemPath>
         <itemPath>../_Low_Level_Driver/s16_output_compare.c</itemPath>
         <itemPath>../_Low_Level_Driver/s24_i2c.c</itemPath>
         <itemPath>../_Low_Level_Driver/s34_can.c</itemPath>

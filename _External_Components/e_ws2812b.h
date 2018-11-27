@@ -5,7 +5,7 @@
 #define LAST_LED    65535
 
 #define COLOR_RED       (TSV_COLOR) {0, 100, 100}
-#define COLOR_ORANGE    (TSV_COLOR) {100, 100, 100}
+#define COLOR_ORANGE    (TSV_COLOR) {50, 100, 100}
 #define COLOR_GREEN     (TSV_COLOR) {200, 100, 100}
 #define COLOR_CYAN      (TSV_COLOR) {300, 100, 100}
 #define COLOR_BLUE      (TSV_COLOR) {400, 100, 100}
@@ -27,12 +27,12 @@ typedef enum
     WS2812B_EFFECT_SAWTOOTH_INV     = (3 << 0),
     WS2812B_EFFECT_GAUSSIAN         = (4 << 0),
             
-    WS2812B_LED_EFFECT_MIXED        = (0 << 3),     // NONE
-    WS2812B_LED_EFFECT_1            = (1 << 3),     // NONE
-    WS2812B_LED_EFFECT_2            = (2 << 3),     // NONE
+    WS2812B_LED_EFFECT_MIXED        = (0 << 3),     // NONE: only when no effects is apply
+    WS2812B_LED_EFFECT_1            = (1 << 3),     // NONE: only when no effects is apply
+    WS2812B_LED_EFFECT_2            = (2 << 3),     // NONE: only when no effects is apply
             
-    WS2812B_RESTORE_COLOR           = (1 << 6),     // OTHERS
-    WS2812B_SUPERPOSE_EFFECT        = (1 << 7),     // OTHERS
+    WS2812B_RESTORE_COLOR           = (1 << 6),     // OTHERS: restore the initial color (the color before the effect)
+    WS2812B_SUPERPOSE_EFFECT        = (1 << 7),     // OTHERS: superpose the new color with the initial color during the effect
             
     WS2812B_REPETITION_INFINITE     = (1 << 8)
 }WS2812B_EFFECTS;
@@ -107,31 +107,31 @@ typedef struct
 
 typedef struct
 {
-    bool                is_chip_select_init;
     uint8_t             spi_module;
-    uint16_t            chip_select;
+    _IO                 chip_select;
+    bool                is_chip_select_init;
     DYNAMIC_TAB_WORD    segments;
     WS2812B_LED         *leds;
     DYNAMIC_TAB_BYTE    buffer;
     uint64_t            tickRefresh;
 }WS2812B_PARAMS;
 
-#define WS2812B_INSTANCE(a, b, c, d, e, f)          \
+#define WS2812B_INSTANCE(_spi_module, _io_port, _io_indice, c, d, e, f)          \
 {                                                   \
+	.spi_module = _spi_module,                      \
+	.chip_select = { _io_port, _io_indice },        \
     .is_chip_select_init = false,                   \
-	.spi_module = a,                                \
-	.chip_select = b,                               \
 	.segments = {c, sizeof(c)/sizeof(uint16_t)},	\
 	.leds = d,                                      \
 	.buffer = {e, f},                               \
 	.tickRefresh = 0,                               \
 }
 
-#define WS2812B_DEF(_name, _spi_module, _chip_select, _number_total_of_leds, ...)                           \
+#define WS2812B_DEF(_name, _spi_module, _cs_pin, _number_total_of_leds, ...)                                \
 static uint16_t _name ## _segment_ram_allocation[] = {0, __VA_ARGS__ };                                     \
 static uint8_t _name ## _buffer_ram_allocation[_number_total_of_leds*9] = {0};                              \
 static WS2812B_LED _name ## _led_ram_allocation[_number_total_of_leds] = {0};                               \
-static WS2812B_PARAMS _name = WS2812B_INSTANCE(_spi_module, _chip_select, _name ## _segment_ram_allocation, _name ## _led_ram_allocation, _name ## _buffer_ram_allocation, _number_total_of_leds)	
+static WS2812B_PARAMS _name = WS2812B_INSTANCE(_spi_module, _XBR(_cs_pin), _IND(_cs_pin), _name ## _segment_ram_allocation, _name ## _led_ram_allocation, _name ## _buffer_ram_allocation, _number_total_of_leds)	
 
 #define __WS2812BIntensity                  var->leds[i[var->spi_module]].output_params.intensity
 #define __WS2812BTick                       var->leds[i[var->spi_module]].tick
@@ -140,18 +140,38 @@ static WS2812B_PARAMS _name = WS2812B_INSTANCE(_spi_module, _chip_select, _name 
 #define __WS2812BExecutionTime2             var->leds[i[var->spi_module]].time_execution2
 #define EndOfEffect()                       __WS2812BIntensity = 0; var->leds[i[var->spi_module]].effect.EFFECT_IN_PROGRESS = 0; if(!var->leds[i[var->spi_module]].effect.INFINITE_REPETITION) { if(var->leds[i[var->spi_module]].effect.NUMBER_OF_REPETITION > 0) { var->leds[i[var->spi_module]].effect.NUMBER_OF_REPETITION--; } else { var->leds[i[var->spi_module]].effect.COUNTER = 0; } }
 
+#define eWS2812BIsLedUpdated(segmentIndice, ledIndice, var)         eWS2812BIsSegmentUpdated(segmentIndice, ledIndice, ledIndice, var)
+#define eWS2812BIsAnimationFinished(anim)                           ((anim.number_of_repetition > 0) ? false : true)
+#define eWS2812BGetNumberOfTotalLed(var)                            (var.buffer.size/9)
+#define eWS2812BGetNumberOfLedInSegment(segmentIndice, var)         (var.segments.p[segmentIndice+1] - var.segments.p[segmentIndice])
+
+
+
 uint8_t eWS2812BPutSegment(uint16_t segmentIndice, uint16_t from, uint16_t to, TSV_COLOR tsvParams1, TSV_COLOR tsvParams2, WS2812B_EFFECTS effectParams, uint16_t numberOfRepetition, uint64_t executionTime, WS2812B_PARAMS *var);
 bool eWS2812BIsSegmentUpdated(uint16_t segmentIndice, uint16_t from, uint16_t to, WS2812B_PARAMS var);
 void eWS2812BSetAnimationParams(bool animationType, uint16_t segmentIndice, uint16_t from, uint16_t to, uint16_t numberOfLed, uint32_t timeKeepOn, uint32_t timeKeepOff, TSV_COLOR tsvParams1, TSV_COLOR tsvParams2, uint8_t loopOption, uint8_t ledEffectHeader, uint8_t ledEffectQueue, uint16_t numberOfRepetition, uint64_t ledTimming, uint64_t speedScrolling, WS2812B_ANIMATION *anim, WS2812B_PARAMS var);
 uint8_t eWS2812BAnimation(WS2812B_ANIMATION *anim, WS2812B_PARAMS *var);
 uint8_t eWS2812BFlush(uint64_t periodRefresh, WS2812B_PARAMS *var);
 
+
+
+#define ws2812b_put_color(_var, _segment, _color)                                                           eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color, _color, 0, 0, 0, &_var)
+#define ws2812b_put_color_delay(_var, _segment, _color, _delay)                                             eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color, _color, 0, 0, _delay, &_var)
+#define ws2812b_put_color_from_to(_var, _segment, _color, _from, _to)                                       eWS2812BPutSegment(_segment, _from, _to, _color, _color, 0, 0, 0, &_var)
+#define ws2812b_put_color_from_to_delay(_var, _segment, _color, _from, _to, _delay)                         eWS2812BPutSegment(_segment, _from, _to, _color, _color, 0, 0, _delay, &_var)
+
+#define ws2812b_put_color_effect(_var, _segment, _color, _effect, _repetition, _speed)                      eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color, _color, _effect, _repetition, _speed, &_var)
+#define ws2812b_put_color_effect_from_to(_var, _segment, _color, _from, _to, _effect, _repetition, _speed)  eWS2812BPutSegment(_segment, _from, _to, _color, _color, _effect, _repetition, _speed, &_var)
+
+#define ws2812b_put_gradient(_var, _segment, _color1, _color2)                                              eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color1, _color2, 0, 0, 0, &_var)
+#define ws2812b_put_gradient_delay(_var, _segment, _color1, _color2, _delay)                                eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color1, _color2, 0, 0, _delay, &_var)
+#define ws2812b_put_gradient_from_to(_var, _segment, _color1, _color2, _from, _to)                          eWS2812BPutSegment(_segment, _from, _to, _color1, _color2, 0, 0, 0, &_var)
+#define ws2812b_put_gradient_from_to_delay(_var, _segment, _color1, _color2, _from, _to, _delay)            eWS2812BPutSegment(_segment, _from, _to, _color1, _color2, 0, 0, _delay, &_var)
+
+#define ws2812b_put_gradient_effect(_var, _segment, _color1, _color2, _effect, _repetition, _speed)                      eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color1, _color2, _effect, _repetition, _speed, &_var)
+#define ws2812b_put_gradient_effect_from_to(_var, _segment, _color1, _color2, _from, _to, _effect, _repetition, _speed)  eWS2812BPutSegment(_segment, _from, _to, _color1, _color2, _effect, _repetition, _speed, &_var)
+
 #define eWS2812BSetParamsChenillard(segInd, from, to, nol, tsv1, tsv2, loopOption, leh, leq, nor, ledTimming, speedScrolling, anim, var)             eWS2812BSetAnimationParams(0, segInd, from, to, nol, 0, 0, tsv1, tsv2, loopOption, leh, leq, nor, ledTimming, speedScrolling, anim, var)
 #define eWS2812BSetParamsTraceur(segInd, from, to, tkOn, tkOff, tsv1, tsv2, loopOption, leh, leq, nor, ledTimming, speedScrolling, anim, var)        eWS2812BSetAnimationParams(1, segInd, from, to, 0, tkOn, tkOff, tsv1, tsv2, loopOption, leh, leq, nor, ledTimming, speedScrolling, anim, var)
-
-#define eWS2812BIsLedUpdated(segmentIndice, ledIndice, var)     eWS2812BIsSegmentUpdated(segmentIndice, ledIndice, ledIndice, var)
-#define eWS2812BIsAnimationFinished(anim)                       ((anim.number_of_repetition > 0) ? false : true)
-#define eWS2812BGetNumberOfTotalLed(var)                        (var.buffer.size/9)
-#define eWS2812BGetNumberOfLedInSegment(segmentIndice, var)     (var.segments.p[segmentIndice+1] - var.segments.p[segmentIndice])
 
 #endif

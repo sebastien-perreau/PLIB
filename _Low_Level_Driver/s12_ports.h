@@ -27,6 +27,33 @@
 #define f_PWMxDeamon(a)         	if(tick <= f_PWM ## a)   mSetIO(f_PWM ## a ## _EN); else    mClrIO(f_PWM ## a ## _EN);
 #define f_PWMxDeamonInv(a)      	if(tick <= f_PWM ## a)   mClrIO(f_PWM ## a ## _EN); else    mSetIO(f_PWM ## a ## _EN);
 
+#define CN_ON                       (1 << _CNCON_ON_POSITION)   /* CN ON */
+#define CN_OFF                      (0)                         /* CN OFF */
+
+#define CN21_PULLUP_ENABLE          (1 << _CNPUE_CNPUE21_POSITION)
+#define CN20_PULLUP_ENABLE          (1 << _CNPUE_CNPUE20_POSITION)
+#define CN19_PULLUP_ENABLE          (1 << _CNPUE_CNPUE19_POSITION)
+#define CN18_PULLUP_ENABLE          (1 << _CNPUE_CNPUE18_POSITION)
+#define CN17_PULLUP_ENABLE          (1 << _CNPUE_CNPUE17_POSITION)
+#define CN16_PULLUP_ENABLE          (1 << _CNPUE_CNPUE16_POSITION)
+#define CN15_PULLUP_ENABLE          (1 << _CNPUE_CNPUE15_POSITION)
+#define CN14_PULLUP_ENABLE          (1 << _CNPUE_CNPUE14_POSITION)
+#define CN13_PULLUP_ENABLE          (1 << _CNPUE_CNPUE13_POSITION)
+#define CN12_PULLUP_ENABLE          (1 << _CNPUE_CNPUE12_POSITION)
+#define CN11_PULLUP_ENABLE          (1 << _CNPUE_CNPUE11_POSITION)
+#define CN10_PULLUP_ENABLE          (1 << _CNPUE_CNPUE10_POSITION)
+#define CN9_PULLUP_ENABLE           (1 << _CNPUE_CNPUE9_POSITION)
+#define CN8_PULLUP_ENABLE           (1 << _CNPUE_CNPUE8_POSITION)
+#define CN7_PULLUP_ENABLE           (1 << _CNPUE_CNPUE7_POSITION)
+#define CN6_PULLUP_ENABLE           (1 << _CNPUE_CNPUE6_POSITION)
+#define CN5_PULLUP_ENABLE           (1 << _CNPUE_CNPUE5_POSITION)
+#define CN4_PULLUP_ENABLE           (1 << _CNPUE_CNPUE4_POSITION)
+#define CN3_PULLUP_ENABLE           (1 << _CNPUE_CNPUE3_POSITION)
+#define CN2_PULLUP_ENABLE           (1 << _CNPUE_CNPUE2_POSITION)
+#define CN1_PULLUP_ENABLE           (1 << _CNPUE_CNPUE1_POSITION)
+#define CN0_PULLUP_ENABLE           (1 << _CNPUE_CNPUE0_POSITION)
+#define CN_PULLUP_DISABLE_ALL       (0)             /* Default */
+
 #define bR0                     	0
 #define bRA                     	1
 #define bRB                     	2
@@ -35,7 +62,6 @@
 #define bRE                     	5
 #define bRF                     	6
 #define bRG                     	7
-
 
 #define __0                         0, 0
 // PORT A
@@ -188,7 +214,8 @@ typedef struct
 	volatile uint32_t	LATINV;
 } PORTS_REGISTERS;
 
-void ports_reset_pin(_IO io);
+void ports_reset_pin_input(_IO io);
+void ports_reset_pin_output(_IO io);
 bool ports_get_bit(_IO io);
 void ports_set_bit(_IO io);
 void ports_clr_bit(_IO io);

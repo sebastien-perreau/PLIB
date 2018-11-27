@@ -52,7 +52,7 @@ const PWM_REGISTERS * pwmModules[] =
   *****************************************************************************/
 void PWMInit(PWM_MODULE mPwmModule, DWORD config)
 {
-    if(config&_OCxCON_ON_MASK)
+    if(config&_OC1CON_ON_MASK)
     {
         PWM_REGISTERS * pwmRegister = (PWM_REGISTERS *)pwmModules[mPwmModule];
 
@@ -92,7 +92,7 @@ void PWMDutyCycle(PWM_MODULE mPwmModule, double dc)
     {
         dc = 101.0;
     }
-    if(pwmRegister->OCxCON&_OCxCON_OCTSEL_MASK)
+    if(pwmRegister->OCxCON&_OC1CON_OCTSEL_MASK)
     {
         pwmRegister->OCxRS = (double)(dc*PR3/100.0);
     }
@@ -127,7 +127,7 @@ double PWMGetDutyCycleResolution(PWM_MODULE mPwmModule)
 {
     PWM_REGISTERS * pwmRegister = (PWM_REGISTERS *)pwmModules[mPwmModule];
 
-    if(pwmRegister->OCxCON&_OCxCON_OCTSEL_MASK)
+    if(pwmRegister->OCxCON&_OC1CON_OCTSEL_MASK)
     {
         return (log10(PR3+1)/log10(2));
     }
@@ -162,7 +162,7 @@ double PWMGetDutyCycle(PWM_MODULE mPwmModule)
 {
     PWM_REGISTERS * pwmRegister = (PWM_REGISTERS *)pwmModules[mPwmModule];
 
-    if(pwmRegister->OCxCON&_OCxCON_OCTSEL_MASK)
+    if(pwmRegister->OCxCON&_OC1CON_OCTSEL_MASK)
     {
         return (double)(pwmRegister->OCxR*100.0/PR3);
     }
@@ -197,7 +197,7 @@ double PWMGetFrequency(PWM_MODULE mPwmModule)
 {
     PWM_REGISTERS * pwmRegister = (PWM_REGISTERS *)pwmModules[mPwmModule];
 
-    if(pwmRegister->OCxCON&_OCxCON_OCTSEL_MASK)
+    if(pwmRegister->OCxCON&_OC1CON_OCTSEL_MASK)
     {
         return (double)(PERIPHERAL_FREQ/(PR3*pow(2, T3CONbits.TCKPS)));
     }
