@@ -27,8 +27,7 @@
 *                           + New DEF & INSTANCE for variable declaration (no more malloc needed)
 *                           + Remove unsupported functions (init & add segment) 
 *                           Example - New variable in main.c:
-*                           old: WS2812B_DEF(ledsOnSPI3A, SPI3A, csRA1, TOTAL_NUMBER_OF_LEDS, ((uint16_t[]){0, LED_END_SEG1, LED_END_SEG2, LED_END_SEG3, LED_END_SEG4})); 
-*                           new: WS2812B_DEF(ledsOnSPI3A, SPI3A, csRA1, TOTAL_NUMBER_OF_LEDS, LED_END_SEG1, LED_END_SEG2, LED_END_SEG3, LED_END_SEG4); 
+*                           WS2812B_DEF(ledsOnSPI3A, SPI3A, csRA1, TOTAL_NUMBER_OF_LEDS, LED_END_SEG1, LED_END_SEG2, LED_END_SEG3, LED_END_SEG4); 
 *********************************************************************/
 
 #include "../PLIB.h"
@@ -52,7 +51,7 @@
  
   Return:
     0: if the routine is correctly finish
-    1: if the routine fail (see code error)
+    1: if the routine fail
     
   Parameters:
     segmentIndice       - The indice of the segment you want to manage.
@@ -60,6 +59,10 @@
                         You can use the FIRST_LED or LAST_LED defines as you wish.
     to                  - The last LED for which you will assign params. This param can be smaller than from.
                         You can use the FIRST_LED or LAST_LED defines as you wish.
+    step                - The "pitch" between leds:
+                        1: 1 by 1
+                        2: 1 by 2
+                        3: 1 by 3 ...
     tsvParams1          - The first TSV color. If gradient whishes then this param is assign to the from's LED.
     tsvParams2          - The second TSV color. If gradient whishes then this param is assign to the to's LED. If you want a united color than tsvParams2 = tsvParams1.
     effectParams        - The desire effect:
@@ -79,7 +82,7 @@
                         2. if !EFFECT_NONE then this param represent the period of the selected animation.
     *var                - The variable assign to the WS2812B LED array.
   *****************************************************************************/
-uint8_t eWS2812BPutSegment(uint16_t segmentIndice, uint16_t from, uint16_t to, TSV_COLOR tsvParams1, TSV_COLOR tsvParams2, WS2812B_EFFECTS effectParams, uint16_t numberOfRepetition, uint64_t executionTime, WS2812B_PARAMS *var)
+uint8_t eWS2812BPutSegment(uint16_t segmentIndice, uint16_t from, uint16_t to, WS2812B_STEP_LED step, TSV_COLOR tsvParams1, TSV_COLOR tsvParams2, WS2812B_EFFECTS effectParams, uint16_t numberOfRepetition, uint64_t executionTime, WS2812B_PARAMS *var)
 {    
     if(segmentIndice <= (var->segments.size-1))
     {
@@ -94,7 +97,7 @@ uint8_t eWS2812BPutSegment(uint16_t segmentIndice, uint16_t from, uint16_t to, T
         if(to < (var->segments.p[segmentIndice+1] - var->segments.p[segmentIndice]))
         {
             uint16_t ledIndice;
-            for(ledIndice = from ; ledIndice <= to ; ledIndice++)
+            for(ledIndice = from ; ledIndice <= to ; ledIndice+=step)
             {
                 var->leds[var->segments.p[segmentIndice]+ledIndice].effect.qw = 0;
                 var->leds[var->segments.p[segmentIndice]+ledIndice].effect.TYPE_OF_EFFECT = (effectParams >> 0) & 0x07;

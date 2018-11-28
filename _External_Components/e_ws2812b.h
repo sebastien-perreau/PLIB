@@ -13,6 +13,20 @@
 #define COLOR_WHITE     (TSV_COLOR) {0, 0, 100}
 #define COLOR_OFF       (TSV_COLOR) {0, 0, 0}
 
+typedef enum 
+{
+    LED_ALL     = 1,
+    LED_1_2     = 2,
+    LED_1_3     = 3,
+    LED_1_4     = 4,
+    LED_1_5     = 5,
+    LED_1_6     = 6,
+    LED_1_7     = 7,
+    LED_1_8     = 8,
+    LED_1_9     = 9,
+    LED_1_255   = 255
+} WS2812B_STEP_LED;
+
 //                MIXED     EFFECT_1    EFFECT_2
 //               ___        ___         ___
 //  TSV actuel      \___       |____       \___
@@ -147,7 +161,7 @@ static WS2812B_PARAMS _name = WS2812B_INSTANCE(_spi_module, _XBR(_cs_pin), _IND(
 
 
 
-uint8_t eWS2812BPutSegment(uint16_t segmentIndice, uint16_t from, uint16_t to, TSV_COLOR tsvParams1, TSV_COLOR tsvParams2, WS2812B_EFFECTS effectParams, uint16_t numberOfRepetition, uint64_t executionTime, WS2812B_PARAMS *var);
+uint8_t eWS2812BPutSegment(uint16_t segmentIndice, uint16_t from, uint16_t to, WS2812B_STEP_LED step, TSV_COLOR tsvParams1, TSV_COLOR tsvParams2, WS2812B_EFFECTS effectParams, uint16_t numberOfRepetition, uint64_t executionTime, WS2812B_PARAMS *var);
 bool eWS2812BIsSegmentUpdated(uint16_t segmentIndice, uint16_t from, uint16_t to, WS2812B_PARAMS var);
 void eWS2812BSetAnimationParams(bool animationType, uint16_t segmentIndice, uint16_t from, uint16_t to, uint16_t numberOfLed, uint32_t timeKeepOn, uint32_t timeKeepOff, TSV_COLOR tsvParams1, TSV_COLOR tsvParams2, uint8_t loopOption, uint8_t ledEffectHeader, uint8_t ledEffectQueue, uint16_t numberOfRepetition, uint64_t ledTimming, uint64_t speedScrolling, WS2812B_ANIMATION *anim, WS2812B_PARAMS var);
 uint8_t eWS2812BAnimation(WS2812B_ANIMATION *anim, WS2812B_PARAMS *var);
@@ -155,22 +169,28 @@ uint8_t eWS2812BFlush(uint64_t periodRefresh, WS2812B_PARAMS *var);
 
 
 
-#define ws2812b_put_color(_var, _segment, _color)                                                           eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color, _color, 0, 0, 0, &_var)
-#define ws2812b_put_color_delay(_var, _segment, _color, _delay)                                             eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color, _color, 0, 0, _delay, &_var)
-#define ws2812b_put_color_from_to(_var, _segment, _color, _from, _to)                                       eWS2812BPutSegment(_segment, _from, _to, _color, _color, 0, 0, 0, &_var)
-#define ws2812b_put_color_from_to_delay(_var, _segment, _color, _from, _to, _delay)                         eWS2812BPutSegment(_segment, _from, _to, _color, _color, 0, 0, _delay, &_var)
+#define ws2812b_put_color(_var, _segment, _step, _color)                                                            eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _step, _color, _color, 0, 0, 0, &_var)
+#define ws2812b_put_color_delay(_var, _segment, _step, _color, _delay)                                              eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _step, _color, _color, 0, 0, _delay, &_var)
+#define ws2812b_put_color_from_to(_var, _segment, _step, _color, _from, _to)                                        eWS2812BPutSegment(_segment, _from, _to, _step, _color, _color, 0, 0, 0, &_var)
+#define ws2812b_put_color_from_to_delay(_var, _segment, _step, _color, _from, _to, _delay)                          eWS2812BPutSegment(_segment, _from, _to, _step, _color, _color, 0, 0, _delay, &_var)
 
-#define ws2812b_put_color_effect(_var, _segment, _color, _effect, _repetition, _speed)                      eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color, _color, _effect, _repetition, _speed, &_var)
-#define ws2812b_put_color_effect_from_to(_var, _segment, _color, _from, _to, _effect, _repetition, _speed)  eWS2812BPutSegment(_segment, _from, _to, _color, _color, _effect, _repetition, _speed, &_var)
+#define ws2812b_put_color_effect(_var, _segment, _step, _color, _effect, _repetition, _speed)                       eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _step, _color, _color, _effect, _repetition, _speed, &_var)
+#define ws2812b_put_color_effect_from_to(_var, _segment, _step, _color, _from, _to, _effect, _repetition, _speed)   eWS2812BPutSegment(_segment, _from, _to, _step, _color, _color, _effect, _repetition, _speed, &_var)
 
-#define ws2812b_put_gradient(_var, _segment, _color1, _color2)                                              eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color1, _color2, 0, 0, 0, &_var)
-#define ws2812b_put_gradient_delay(_var, _segment, _color1, _color2, _delay)                                eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color1, _color2, 0, 0, _delay, &_var)
-#define ws2812b_put_gradient_from_to(_var, _segment, _color1, _color2, _from, _to)                          eWS2812BPutSegment(_segment, _from, _to, _color1, _color2, 0, 0, 0, &_var)
-#define ws2812b_put_gradient_from_to_delay(_var, _segment, _color1, _color2, _from, _to, _delay)            eWS2812BPutSegment(_segment, _from, _to, _color1, _color2, 0, 0, _delay, &_var)
+#define ws2812b_put_gradient(_var, _segment, _step, _color1, _color2)                                               eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _step, _color1, _color2, 0, 0, 0, &_var)
+#define ws2812b_put_gradient_delay(_var, _segment, _step, _color1, _color2, _delay)                                 eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _step, _color1, _color2, 0, 0, _delay, &_var)
+#define ws2812b_put_gradient_from_to(_var, _segment, _step, _color1, _color2, _from, _to)                           eWS2812BPutSegment(_segment, _from, _to, _step, _color1, _color2, 0, 0, 0, &_var)
+#define ws2812b_put_gradient_from_to_delay(_var, _segment, _step, _color1, _color2, _from, _to, _delay)             eWS2812BPutSegment(_segment, _from, _to, _step, _color1, _color2, 0, 0, _delay, &_var)
 
-#define ws2812b_put_gradient_effect(_var, _segment, _color1, _color2, _effect, _repetition, _speed)                      eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _color1, _color2, _effect, _repetition, _speed, &_var)
-#define ws2812b_put_gradient_effect_from_to(_var, _segment, _color1, _color2, _from, _to, _effect, _repetition, _speed)  eWS2812BPutSegment(_segment, _from, _to, _color1, _color2, _effect, _repetition, _speed, &_var)
+#define ws2812b_put_gradient_effect(_var, _segment, _step, _color1, _color2, _effect, _repetition, _speed)                      eWS2812BPutSegment(_segment, FIRST_LED, LAST_LED, _step, _color1, _color2, _effect, _repetition, _speed, &_var)
+#define ws2812b_put_gradient_effect_from_to(_var, _segment, _step, _color1, _color2, _from, _to, _effect, _repetition, _speed)  eWS2812BPutSegment(_segment, _from, _to, _step, _color1, _color2, _effect, _repetition, _speed, &_var)
 
+#define ws2812b_is_segment_updated(_var, _segment)                                                                  eWS2812BIsSegmentUpdated(_segment, FIRST_LED, LAST_LED, _var)
+#define ws2812b_is_segment_updated_from_to(_var, _segment, _from, _to)                                              eWS2812BIsSegmentUpdated(_segment, _from, _to, _var)
+
+
+
+// Next functions are issues !!!
 #define eWS2812BSetParamsChenillard(segInd, from, to, nol, tsv1, tsv2, loopOption, leh, leq, nor, ledTimming, speedScrolling, anim, var)             eWS2812BSetAnimationParams(0, segInd, from, to, nol, 0, 0, tsv1, tsv2, loopOption, leh, leq, nor, ledTimming, speedScrolling, anim, var)
 #define eWS2812BSetParamsTraceur(segInd, from, to, tkOn, tkOff, tsv1, tsv2, loopOption, leh, leq, nor, ledTimming, speedScrolling, anim, var)        eWS2812BSetAnimationParams(1, segInd, from, to, 0, tkOn, tkOff, tsv1, tsv2, loopOption, leh, leq, nor, ledTimming, speedScrolling, anim, var)
 

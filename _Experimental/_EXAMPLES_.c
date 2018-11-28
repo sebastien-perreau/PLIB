@@ -399,7 +399,7 @@ void _EXAMPLE_LOG(ACQUISITIONS_VAR var)
 
 void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
 {
-    WS2812B_DEF(ws2812b_single, SPI1, __PA0, 18, 14);
+    WS2812B_DEF(ws2812b_single, SPI1, __PA0, 18, 18);
     SWITCH_DEF(sw1, SWITCH1, ACTIVE_LOW);
     static WS2812B_ANIMATION animation;
     static state_machine_t sm_example = {0};
@@ -413,6 +413,7 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
             tick = mGetTick();
             sw1.indice++;
             _execute = true;
+            animation.number_of_repetition = 0;
         }
     }
     
@@ -436,7 +437,7 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color(ws2812b_single, 0, COLOR_OFF);
+                        ws2812b_put_color(ws2812b_single, 0, LED_ALL, COLOR_OFF);
                     }
                     break;
                     
@@ -444,7 +445,7 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color(ws2812b_single, 0, COLOR_BLUE);
+                        ws2812b_put_color(ws2812b_single, 0, LED_1_3, COLOR_BLUE);
                     }
                     break;
                     
@@ -452,7 +453,7 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color_delay(ws2812b_single, 0, COLOR_GREEN, TICK_1S);
+                        ws2812b_put_color_delay(ws2812b_single, 0, LED_ALL, COLOR_GREEN, TICK_1S);
                     }
                     break;
                     
@@ -460,8 +461,8 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color_from_to(ws2812b_single, 0, COLOR_WHITE, 6, 11);
-                        ws2812b_put_color_from_to(ws2812b_single, 0, COLOR_RED, 12, 17);
+                        ws2812b_put_color_from_to(ws2812b_single, 0, LED_ALL, COLOR_WHITE, 6, 11);
+                        ws2812b_put_color_from_to(ws2812b_single, 0, LED_ALL, COLOR_RED, 12, 17);
                     }
                     break;
                     
@@ -469,7 +470,8 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_gradient(ws2812b_single, 0, COLOR_BLUE, COLOR_GREEN);
+                        ws2812b_put_color(ws2812b_single, 0, LED_ALL, COLOR_OFF);
+                        ws2812b_put_gradient(ws2812b_single, 0, LED_1_2, COLOR_RED, COLOR_GREEN);
                     }
                     break;
                     
@@ -477,7 +479,7 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_gradient_delay(ws2812b_single, 0, COLOR_RED, COLOR_CYAN, TICK_1S);
+                        ws2812b_put_gradient_delay(ws2812b_single, 0, LED_ALL, COLOR_CYAN, COLOR_RED, TICK_1S);
                     }
                     break;
                     
@@ -485,7 +487,7 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color_delay(ws2812b_single, 0, COLOR_WHITE, TICK_1S);
+                        ws2812b_put_color_delay(ws2812b_single, 0, LED_ALL, COLOR_WHITE, TICK_1S);
                     }
                     break;
                     
@@ -493,7 +495,7 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_gradient_from_to(ws2812b_single, 0, COLOR_RED, COLOR_GREEN, 5, 12);
+                        ws2812b_put_gradient_from_to(ws2812b_single, 0, LED_ALL, COLOR_RED, COLOR_GREEN, 5, 12);
                     }
                     break;
                     
@@ -501,7 +503,7 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_gradient_from_to_delay(ws2812b_single, 0, COLOR_GREEN, COLOR_ORANGE, 5, 12, TICK_1S);
+                        ws2812b_put_gradient_from_to_delay(ws2812b_single, 0, LED_ALL, COLOR_GREEN, COLOR_BLUE, 5, 12, TICK_1S);
                     }
                     break;
                     
@@ -509,7 +511,7 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color_effect(ws2812b_single, 0, COLOR_BLUE, WS2812B_EFFECT_TRIANGLE | WS2812B_SUPERPOSE_EFFECT, WS2812B_REPETITION_INFINITE, TICK_1S);
+                        ws2812b_put_color_effect(ws2812b_single, 0, LED_ALL, COLOR_BLUE, WS2812B_EFFECT_TRIANGLE | WS2812B_SUPERPOSE_EFFECT, WS2812B_REPETITION_INFINITE, TICK_1S);
                     }
                     break;
                     
@@ -517,8 +519,8 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color(ws2812b_single, 0, COLOR_PURPLE);
-                        ws2812b_put_color_effect_from_to(ws2812b_single, 0, COLOR_GREEN, 5, 12, WS2812B_EFFECT_GAUSSIAN | WS2812B_RESTORE_COLOR, 20, TICK_1S);
+                        ws2812b_put_color(ws2812b_single, 0, LED_ALL, COLOR_PURPLE);
+                        ws2812b_put_color_effect_from_to(ws2812b_single, 0, LED_ALL, COLOR_GREEN, 5, 12, WS2812B_EFFECT_GAUSSIAN | WS2812B_RESTORE_COLOR, 20, TICK_1S);
                     }
                     break;
                     
@@ -526,9 +528,9 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color(ws2812b_single, 0, COLOR_GREEN);
-                        ws2812b_put_color_effect_from_to(ws2812b_single, 0, COLOR_RED, 5, 12, WS2812B_EFFECT_SAWTOOTH, 20, TICK_1S);
-                        ws2812b_put_color_effect_from_to(ws2812b_single, 0, COLOR_RED, 13, 17, WS2812B_EFFECT_SAWTOOTH_INV, 20, TICK_1S);
+                        ws2812b_put_color(ws2812b_single, 0, LED_ALL, COLOR_GREEN);
+                        ws2812b_put_color_effect_from_to(ws2812b_single, 0, LED_ALL, COLOR_RED, 5, 12, WS2812B_EFFECT_SAWTOOTH, 20, TICK_1S);
+                        ws2812b_put_color_effect_from_to(ws2812b_single, 0, LED_ALL, COLOR_RED, 13, 17, WS2812B_EFFECT_SAWTOOTH_INV, 20, TICK_1S);
                     }
                     break;
                     
@@ -536,7 +538,7 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_gradient_effect(ws2812b_single, 0, COLOR_BLUE, COLOR_GREEN, WS2812B_EFFECT_TRIANGLE, WS2812B_REPETITION_INFINITE, TICK_200MS);
+                        ws2812b_put_gradient_effect(ws2812b_single, 0, LED_ALL, COLOR_BLUE, COLOR_GREEN, WS2812B_EFFECT_TRIANGLE, WS2812B_REPETITION_INFINITE, TICK_200MS);
                     }
                     break;
                     
@@ -544,8 +546,8 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color(ws2812b_single, 0, COLOR_WHITE);
-                        ws2812b_put_gradient_effect_from_to(ws2812b_single, 0, COLOR_RED, COLOR_CYAN, 0, 8, WS2812B_EFFECT_GAUSSIAN | WS2812B_RESTORE_COLOR, WS2812B_REPETITION_INFINITE, TICK_1S);
+                        ws2812b_put_color(ws2812b_single, 0, LED_ALL, COLOR_WHITE);
+                        ws2812b_put_gradient_effect_from_to(ws2812b_single, 0, LED_ALL, COLOR_RED, COLOR_CYAN, 0, 8, WS2812B_EFFECT_GAUSSIAN | WS2812B_RESTORE_COLOR, WS2812B_REPETITION_INFINITE, TICK_1S);
                     }
                     break;
                     
@@ -553,12 +555,11 @@ void _EXAMPLE_WS2812B_SINGLE_SEGMENT()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color_delay(ws2812b_single, 0, COLOR_OFF, TICK_1S);
+                        ws2812b_put_color_delay(ws2812b_single, 0, LED_ALL, COLOR_OFF, TICK_1S);
                     }
-                    if (eWS2812BIsSegmentUpdated(0, FIRST_LED, LAST_LED, ws2812b_single))
+                    if (ws2812b_is_segment_updated(ws2812b_single, 0))
                     {
-                        //eWS2812BSetParamsChenillard(...)
-                        mUpdateLedStatusD2(ON);
+                        eWS2812BSetParamsChenillard(0, FIRST_LED, LAST_LED, 4, COLOR_RED, COLOR_RED, 2, 0, 0, WS2812B_REPETITION_INFINITE, -1, TICK_2S, &animation, ws2812b_single);
                     }
                     break;
                     
@@ -606,9 +607,9 @@ void _EXAMPLE_WS2812B_MULTI_SEGMENTS()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_color(ws2812b_multi, 0, COLOR_BLUE);
-                        ws2812b_put_color(ws2812b_multi, 1, COLOR_WHITE);
-                        ws2812b_put_color(ws2812b_multi, 2, COLOR_RED);
+                        ws2812b_put_color(ws2812b_multi, 0, LED_ALL, COLOR_BLUE);
+                        ws2812b_put_color(ws2812b_multi, 1, LED_ALL, COLOR_WHITE);
+                        ws2812b_put_color(ws2812b_multi, 2, LED_ALL, COLOR_RED);
                     }
                     break;
                     
@@ -616,9 +617,9 @@ void _EXAMPLE_WS2812B_MULTI_SEGMENTS()
                     if (_execute)
                     {
                         _execute = false;
-                        ws2812b_put_gradient(ws2812b_multi, 0, COLOR_RED, COLOR_BLUE);
-                        ws2812b_put_gradient(ws2812b_multi, 1, COLOR_BLUE, COLOR_GREEN);
-                        ws2812b_put_gradient(ws2812b_multi, 2, COLOR_GREEN, COLOR_RED);
+                        ws2812b_put_gradient(ws2812b_multi, 0, LED_ALL, COLOR_RED, COLOR_BLUE);
+                        ws2812b_put_gradient(ws2812b_multi, 1, LED_ALL, COLOR_BLUE, COLOR_GREEN);
+                        ws2812b_put_gradient(ws2812b_multi, 2, LED_ALL, COLOR_GREEN, COLOR_RED);
                     }
                     break;
                     
