@@ -40,7 +40,7 @@ Name | Validated | Commented | Autonomous | Example | Dependencies | IRQs
 *s34_can* | | | | | T1 |
 *s35_ethernet* | | | | | T1 |
 **High Level** | ************ | ************ | ************ | ************ | ************ | ************
-*software_pwm* | yes | yes | yes | | T5 & GPIO | T5
+*software_pwm (config.c/h)* | yes | yes | yes | | T5 & GPIO | T5
 *utilities* | | | | | T1 & ADC | -
 *string_advance* | | | | | | -
 *one_wire_communication* | | | | | | -
