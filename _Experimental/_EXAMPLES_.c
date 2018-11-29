@@ -645,3 +645,64 @@ void _EXAMPLE_WS2812B_MULTI_SEGMENTS()
             break;
     }   
 }
+
+void _EXAMPLE_UART()
+{
+    static state_machine_t sm_example = {0};
+    SWITCH_DEF(sw1, SWITCH1, ACTIVE_LOW);
+    static char tab_string[] = "Helloooo !";
+    static uint8_t ind_string = 0;
+    
+    switch (sm_example.index)
+    {
+        case _SETUP:          
+      
+            exp_uart_init(EXP_UART1, 115200, EXP_UART_STD_PARAMS);
+            sm_example.index = _MAIN;
+            break;
+            
+        case _MAIN:
+            
+            if (sw1.is_updated)
+            {
+                sw1.is_updated = false;
+            }
+            switch (sw1.indice)
+            {
+                case 0:
+                    // Do nothing
+                    break;
+                    
+                case 1:
+                    if (mTickCompare(sm_example.tick) >= TICK_100MS)
+                    {
+                        if (!exp_uart_send_break(EXP_UART1))
+                        {
+                            sm_example.tick = mGetTick();
+                        }
+                    }
+                    ind_string = 0;
+                    break;
+                    
+                case 2:
+                    if (mTickCompare(sm_example.tick) >= TICK_100MS)
+                    {
+                        if (!exp_uart_send_data(EXP_UART1, tab_string[ind_string]))
+                        {
+                            if (tab_string[++ind_string] == '\0')
+                            {
+                                ind_string = 0;
+                                sm_example.tick = mGetTick();
+                            }
+                        }
+                    }
+                    break;
+                    
+                default:
+                    sw1.indice = 0;
+                    break;
+            }
+            fu_switch(&sw1);
+            break;
+    }   
+}
