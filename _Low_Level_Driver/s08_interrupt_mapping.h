@@ -189,6 +189,22 @@ typedef struct
     volatile uint32_t   PRI_POS;
 } IRQ_REGISTERS;
 
+typedef enum
+{
+    IRQ_SPI_FAULT = 0,
+    IRQ_SPI_TX,
+    IRQ_SPI_RX,
+    IRQ_I2C_MASTER,
+    IRQ_I2C_BUS_COLISION,
+    IRQ_I2C_SLAVE,
+    IRQ_UART_ERROR,
+    IRQ_UART_RX,
+    IRQ_UART_TX
+} IRQ_EVENT_TYPE;
+
+typedef void (*basic_event_handler_t)(uint8_t id);
+typedef void (*serial_event_handler_t)(uint8_t id, IRQ_EVENT_TYPE event_type, uint32_t event_value);
+
 #define IRQInit(source, enable, priority, sub_priority)     \
             (                                               \
             irq_enable(source, IRQ_DISABLED),               \

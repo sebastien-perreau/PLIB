@@ -13,7 +13,7 @@
 
 #include "../PLIB.h"
 
-static EXP_UART_MODULE module_id;
+static UART_MODULE module_id;
 static bool dma_tx_in_progress = false;
 const uint8_t uart_tx_irq[] = 
 {
@@ -34,7 +34,7 @@ const void *p_tx_reg[] =
     (void*)&U6TXREG
 };
 
-void log_init(EXP_UART_MODULE id, uint32_t data_rate)
+void log_init(UART_MODULE id, uint32_t data_rate)
 {
     module_id = id;
     
@@ -43,7 +43,7 @@ void log_init(EXP_UART_MODULE id, uint32_t data_rate)
     IRQInit(IRQ_DMA6, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_3, IRQ_SUB_PRIORITY_LEVEL_1);
     DmaChnSetEventControl(DMA_CHANNEL6, DMA_EV_START_IRQ(uart_tx_irq[module_id]));
 
-    exp_uart_init(id, data_rate, EXP_UART_STD_PARAMS);
+    uart_init(id, NULL, data_rate, UART_STD_PARAMS);
     IRQInit(IRQ_U1E + id, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_3, IRQ_SUB_PRIORITY_LEVEL_1);
     IRQInit(IRQ_U1TX + id, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_3, IRQ_SUB_PRIORITY_LEVEL_1);
     IRQInit(IRQ_U1RX + id, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_5, IRQ_SUB_PRIORITY_LEVEL_1);

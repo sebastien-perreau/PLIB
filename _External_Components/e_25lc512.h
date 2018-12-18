@@ -74,8 +74,8 @@ typedef struct
 
 #define _25LC512_REGISTERS_INSTANCE(a, b)           \
 {                                                   \
-    .dW = {a, 0},                                   \
-    .dR = {b, 0},                                   \
+    .dW = {a, 0, 0},                                \
+    .dR = {b, 0, 0},                                \
     .aW = 0,                                        \
     .aR = 0,                                        \
     .status_bit = {0}                               \

@@ -135,9 +135,9 @@ typedef struct
 	.spi_module = _spi_module,                      \
 	.chip_select = { _io_port, _io_indice },        \
     .is_chip_select_init = false,                   \
-	.segments = {c, sizeof(c)/sizeof(uint16_t)},	\
+	.segments = {c, sizeof(c)/sizeof(uint16_t), 0},	\
 	.leds = d,                                      \
-	.buffer = {e, f},                               \
+	.buffer = {e, f, 0},                            \
 	.tickRefresh = 0,                               \
 }
 

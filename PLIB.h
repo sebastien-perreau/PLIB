@@ -5,13 +5,18 @@
 #include <math.h>
 #include <lega-c/machine/types.h>
 #include "ctype.h"
+#include <GenericTypeDefs.h>
+
+
+
 
 #include <peripheral/dma.h>         // xc pic32 libraries 
-#include <peripheral/i2c.h>         // xc pic32 libraries NEXT
 #include <peripheral/spi.h>         // xc pic32 libraries TODO
 #include <peripheral/system.h>      // xc pic32 libraries 
 #include <peripheral/eth.h>         // xc pic32 libraries
 #include <peripheral/CAN.h>         // xc pic32 libraries NEXT
+
+
 
 #include "defines.h"
 
@@ -20,7 +25,7 @@
 #include "_Low_Level_Driver/s14_timers.h"
 #include "_Low_Level_Driver/s16_output_compare.h"
 #include "_Low_Level_Driver/s17_adc.h"
-#include "_Experimental/s21_uart_exp.h"
+#include "_Low_Level_Driver/s21_uart.h"
 #include "_Low_Level_Driver/s23_spi.h"
 #include "_Low_Level_Driver/s24_i2c.h"
 #include "_Low_Level_Driver/s34_can.h"
@@ -46,6 +51,7 @@
 
 #include "_Experimental/_EXAMPLES_.h"
 #include "_Experimental/_LOG.h"
+#include "_Experimental/e_pca9685.h"
 
 uint8_t _ledStatus;
 

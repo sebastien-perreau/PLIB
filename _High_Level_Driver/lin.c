@@ -11,12 +11,48 @@
 static LIN_REGISTERS linRegs[LIN_NUMBER_OF_MODULES];
 static QWORD tickLin[LIN_NUMBER_OF_MODULES];
 
-void LINInit(EXP_UART_MODULE id, BYTE version)
+static void lin_event_handler(uint8_t id, IRQ_EVENT_TYPE evt_type, uint32_t data)
 {
-    exp_uart_init(id, EXP_UART_BAUDRATE_19200, EXP_UART_STD_PARAMS);
-    IRQInit(IRQ_U1E + id, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_3, IRQ_SUB_PRIORITY_LEVEL_1);
-    IRQInit(IRQ_U1TX + id, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_3, IRQ_SUB_PRIORITY_LEVEL_1);
-    IRQInit(IRQ_U1RX + id, IRQ_ENABLED, IRQ_PRIORITY_LEVEL_5, IRQ_SUB_PRIORITY_LEVEL_1);
+    switch (evt_type)
+    {
+        case IRQ_UART_ERROR:
+            
+            break;
+            
+        case IRQ_UART_RX:
+            
+            linRegs[id].busTime = LIN_BUS_ACTIVITY;
+            if(linRegs[id].statusBits.busy)
+            {
+                if(linRegs[id].stateBits.requestReadBack)
+                {
+                    if(data != linRegs[id].readBack)
+                    {
+                        linRegs[id].errorBits.readBackBit = 1;
+                    }
+                    linRegs[id].stateBits.requestReadBack = 0;
+                }
+                LINDeamonMaster(id, data);
+            }
+            break;
+            
+        case IRQ_UART_TX:
+            
+            break;
+            
+    }
+}
+
+static void lin_timing_event_handler(uint8_t id)
+{
+    LINTimeUpdate(LIN2);
+    LINTimeUpdate(LIN5);
+}
+
+void LINInit(UART_MODULE id, BYTE version)
+{
+    uart_init(id, lin_event_handler, UART_BAUDRATE_19200, UART_STD_PARAMS);
+    timer_init_2345_us(TIMER4, lin_timing_event_handler, TMR_ON | TMR_SOURCE_INT | TMR_IDLE_CON | TMR_GATE_OFF, 1000);
     
     // Status
     linRegs[id].statusBits.busy = 0;
@@ -53,37 +89,37 @@ BYTE LINSetIdWithParity(BYTE id)
     return ((id&0x3F) | (((((id>>0)&0x01)^((id>>1)&0x01)^((id>>2)&0x01)^((id>>4)&0x01))&0x01)<<6) | ((!(((id>>1)&0x01)^((id>>3)&0x01)^((id>>4)&0x01)^((id>>5)&0x01))&0x01)<<7));
 }
 
-LIN_STATUS_BITS *LINGetStatusBitsAdress(EXP_UART_MODULE mUartModule)
+LIN_STATUS_BITS *LINGetStatusBitsAdress(UART_MODULE mUartModule)
 {
     return &linRegs[mUartModule].statusBits;
 }
 
-LIN_STATE_BITS *LINGetStateBitsAdress(EXP_UART_MODULE mUartModule)
+LIN_STATE_BITS *LINGetStateBitsAdress(UART_MODULE mUartModule)
 {
     return &linRegs[mUartModule].stateBits;
 }
 
-LIN_ERROR_BITS *LINGetErrorBitsAdress(EXP_UART_MODULE mUartModule)
+LIN_ERROR_BITS *LINGetErrorBitsAdress(UART_MODULE mUartModule)
 {
     return &linRegs[mUartModule].errorBits;
 }
 
-LIN_FRAME *LINGetFrameAdress(EXP_UART_MODULE mUartModule)
+LIN_FRAME *LINGetFrameAdress(UART_MODULE mUartModule)
 {
     return &linRegs[mUartModule].frame;
 }
 
-BYTE LINGetVersion(EXP_UART_MODULE mUartModule)
+BYTE LINGetVersion(UART_MODULE mUartModule)
 {
     return linRegs[mUartModule].version;
 }
 
-WORD LINGetCheksum(EXP_UART_MODULE mUartModule)
+WORD LINGetCheksum(UART_MODULE mUartModule)
 {
     return linRegs[mUartModule].cheksum;
 }
 
-void LINCleanup(EXP_UART_MODULE mUartModule)
+void LINCleanup(UART_MODULE mUartModule)
 {
     // Clear bits state.
     linRegs[mUartModule].stateBits.requestReadBack = 0;
@@ -97,7 +133,7 @@ void LINCleanup(EXP_UART_MODULE mUartModule)
     linRegs[mUartModule].stateMachine = LIN_MESSAGE_HEADER_BREAK;
 }
 
-void LINFlush(EXP_UART_MODULE mUartModule, BOOL requestType)
+void LINFlush(UART_MODULE mUartModule, BOOL requestType)
 {
     linRegs[mUartModule].stateBits.requestType = requestType;
     linRegs[mUartModule].frameTime = (WORD) (((1.4*(10*(linRegs[mUartModule].frame.dlc + 1)) + 34) / 20) + 1);
@@ -110,7 +146,7 @@ void LINFlush(EXP_UART_MODULE mUartModule, BOOL requestType)
     LINDeamonMaster(mUartModule, 0x00);
 }
 
-void LINTimeUpdate(EXP_UART_MODULE mUartModule)
+void LINTimeUpdate(UART_MODULE mUartModule)
 {
     if(!linRegs[mUartModule].statusBits.busy)
     {
@@ -138,58 +174,36 @@ void LINTimeUpdate(EXP_UART_MODULE mUartModule)
     }
 }
 
-void LINInterrupt(EXP_UART_MODULE mUartModule)
-{
-    if(exp_uart_is_rx_data_available(mUartModule))
-    {
-        uint16_t uartDataReceive;
-        exp_uart_get_data(mUartModule, &uartDataReceive);
-        linRegs[mUartModule].busTime = LIN_BUS_ACTIVITY;
-        if(linRegs[mUartModule].statusBits.busy)
-        {
-            if(linRegs[mUartModule].stateBits.requestReadBack)
-            {
-                if(uartDataReceive != linRegs[mUartModule].readBack)
-                {
-                    linRegs[mUartModule].errorBits.readBackBit = 1;
-                }
-                linRegs[mUartModule].stateBits.requestReadBack = 0;
-            }
-            LINDeamonMaster(mUartModule, uartDataReceive);
-        }
-    }
-}
-
-void LINDeamonMaster(EXP_UART_MODULE mUartModule, BYTE UartDataReceive)
+void LINDeamonMaster(UART_MODULE mUartModule, BYTE UartDataReceive)
 {
     static BYTE indData = 0;
 
     switch(linRegs[mUartModule].stateMachine)
     {
         case LIN_MESSAGE_WAKE_UP:
-            exp_uart_set_baudrate(mUartModule, EXP_UART_BAUDRATE_600);
-            exp_uart_send_data(mUartModule, 0xfc);
+            uart_set_baudrate(mUartModule, UART_BAUDRATE_600);
+            uart_send_data(mUartModule, 0xfc);
             linRegs[mUartModule].readBack = 0xfc;
             linRegs[mUartModule].stateBits.requestReadBack = true;
             linRegs[mUartModule].stateMachine = LIN_MESSAGE_HEADER_BREAK;
             break;
         case LIN_MESSAGE_HEADER_BREAK:
             linRegs[mUartModule].statusBits.sleep = 0;
-            exp_uart_set_baudrate(mUartModule, ((EXP_UART_BAUDRATE_19200 << 1)/3));
-            exp_uart_send_data(mUartModule, 0x00);
+            uart_set_baudrate(mUartModule, ((UART_BAUDRATE_19200 << 1)/3));
+            uart_send_data(mUartModule, 0x00);
             linRegs[mUartModule].readBack = 0x00;
             linRegs[mUartModule].stateBits.requestReadBack = true;
             linRegs[mUartModule].stateMachine = LIN_MESSAGE_HEADER_SYNC;
             break;
         case LIN_MESSAGE_HEADER_SYNC:
-            exp_uart_set_baudrate(mUartModule, EXP_UART_BAUDRATE_19200);
-            exp_uart_send_data(mUartModule, 0x55);
+            uart_set_baudrate(mUartModule, UART_BAUDRATE_19200);
+            uart_send_data(mUartModule, 0x55);
             linRegs[mUartModule].readBack = 0x55;
             linRegs[mUartModule].stateBits.requestReadBack = true;
             linRegs[mUartModule].stateMachine = LIN_MESSAGE_HEADER_ID;
             break;
         case LIN_MESSAGE_HEADER_ID:
-            exp_uart_send_data(mUartModule, linRegs[mUartModule].frame.id);
+            uart_send_data(mUartModule, linRegs[mUartModule].frame.id);
             linRegs[mUartModule].readBack = linRegs[mUartModule].frame.id;
             if(linRegs[mUartModule].version == LIN_VERSION_1_3)
             {
@@ -211,7 +225,7 @@ void LINDeamonMaster(EXP_UART_MODULE mUartModule, BYTE UartDataReceive)
             }
             break;
         case LIN_MESSAGE_TX_DATA:
-            exp_uart_send_data(mUartModule, linRegs[mUartModule].frame.data[indData]);
+            uart_send_data(mUartModule, linRegs[mUartModule].frame.data[indData]);
             linRegs[mUartModule].readBack = linRegs[mUartModule].frame.data[indData];
             linRegs[mUartModule].cheksum += linRegs[mUartModule].frame.data[indData];
             if(linRegs[mUartModule].cheksum > 255)
@@ -247,7 +261,7 @@ void LINDeamonMaster(EXP_UART_MODULE mUartModule, BYTE UartDataReceive)
             }
             break;
         case LIN_MESSAGE_TX_CHEKSUM:
-            exp_uart_send_data(mUartModule, (BYTE)linRegs[mUartModule].cheksum);
+            uart_send_data(mUartModule, (BYTE)linRegs[mUartModule].cheksum);
             linRegs[mUartModule].readBack = (BYTE)linRegs[mUartModule].cheksum;
             linRegs[mUartModule].stateBits.requestReadBack = true;
             linRegs[mUartModule].stateMachine = LIN_MESSAGE_DEFAULT;

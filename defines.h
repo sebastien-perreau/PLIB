@@ -85,38 +85,43 @@
     // Generic Structure
     typedef struct
     {
-        BYTE index;
-        QWORD tick;
+        uint8_t     index;
+        uint64_t    tick;
     } state_machine_t;
     
     typedef struct
     {
-        BYTE    *p;
-        QWORD   size;
+        uint8_t     *p;
+        uint16_t    size;
+        uint16_t    index;
     } DYNAMIC_TAB_BYTE;
     
     typedef struct
     {
-        WORD    *p;
-        QWORD   size;
+        uint16_t    *p;
+        uint16_t    size;
+        uint16_t    index;
     } DYNAMIC_TAB_WORD;
     
     typedef struct
     {
-        DWORD   *p;
-        QWORD   size;
+        uint32_t    *p;
+        uint16_t    size;
+        uint16_t    index;
     } DYNAMIC_TAB_DWORD;
     
     typedef struct
     {
-        QWORD   *p;
-        QWORD   size;
+        uint64_t    *p;
+        uint16_t    size;
+        uint16_t    index;
     } DYNAMIC_TAB_QWORD;
     
     typedef struct
     {
-        float   *p;
-        QWORD   size;
+        float       *p;
+        uint16_t    size;
+        uint16_t    index;
     } DYNAMIC_TAB_FLOAT;
 	
 #endif

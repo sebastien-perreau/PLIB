@@ -11,6 +11,37 @@
 
 #include "../PLIB.h"
 
+static void _example_timer_event_handler(uint8_t id)
+{
+    if (mGetIO(LED2))
+    {
+        mUpdateLedStatusD2(OFF);
+    }
+    else
+    {
+        mUpdateLedStatusD2(ON);
+    }
+}
+
+void _EXAMPLE_TIMER()
+{
+    static state_machine_t sm_example = {0};
+    
+    switch (sm_example.index)
+    {
+        case _SETUP:
+            
+            timer_init_2345_us(TIMER4, _example_timer_event_handler, TMR_ON | TMR_SOURCE_INT | TMR_IDLE_CON | TMR_GATE_OFF, 100000);
+            IRQInit(IRQ_T4, IRQ_ENABLED, IRQ_PRIORITY_LEVEL_3, IRQ_SUB_PRIORITY_LEVEL_3);
+            sm_example.index = _MAIN;
+            break;
+            
+        case _MAIN:
+            
+            break;
+    } 
+}
+
 void _EXAMPLE_SWITCH()
 {
     SWITCH_DEF(sw1, SWITCH1, ACTIVE_LOW);
@@ -657,7 +688,7 @@ void _EXAMPLE_UART()
     {
         case _SETUP:          
       
-            exp_uart_init(EXP_UART1, 115200, EXP_UART_STD_PARAMS);
+            uart_init(UART1, NULL, 115200, UART_STD_PARAMS);
             sm_example.index = _MAIN;
             break;
             
@@ -676,7 +707,7 @@ void _EXAMPLE_UART()
                 case 1:
                     if (mTickCompare(sm_example.tick) >= TICK_100MS)
                     {
-                        if (!exp_uart_send_break(EXP_UART1))
+                        if (!uart_send_break(UART1))
                         {
                             sm_example.tick = mGetTick();
                         }
@@ -687,7 +718,7 @@ void _EXAMPLE_UART()
                 case 2:
                     if (mTickCompare(sm_example.tick) >= TICK_100MS)
                     {
-                        if (!exp_uart_send_data(EXP_UART1, tab_string[ind_string]))
+                        if (!uart_send_data(UART1, tab_string[ind_string]))
                         {
                             if (tab_string[++ind_string] == '\0')
                             {
@@ -705,4 +736,43 @@ void _EXAMPLE_UART()
             fu_switch(&sw1);
             break;
     }   
+}
+
+void _EXAMPLE_PCA9685()
+{
+    PCA9685_DEF(pca9685, I2C2, 0x80);
+    BUS_MANAGEMENT_DEF(bm_i2c2, &pca9685.i2c_params.bus_management_params);
+    static state_machine_t sm_example = {0};
+    
+    switch (sm_example.index)
+    {
+        case _SETUP:          
+      
+            sm_example.index = _MAIN;
+            break;
+            
+        case _MAIN:
+            
+            e_pca9685_set_pwm(pca9685, 0, 1024);
+            e_pca9685_set_pwm(pca9685, 1, 2048);
+            e_pca9685_set_pwm(pca9685, 2, 3096);
+            e_pca9685_set_pwm_with_phase(pca9685, 3, 768, 2048);
+            e_pca9685_set_pwm_with_phase(pca9685, 4, 1024, 2048);
+            e_pca9685_set_pwm_with_phase(pca9685, 5, 1280, 2048);
+            e_pca9685_set_pwm_with_phase(pca9685, 6, 1536, 2048);
+            pca9685.registers.PWM[7].phase = 1792;
+            pca9685.registers.PWM[7].dc = 244;
+            e_pca9685_set_pwm_with_phase(pca9685, 8, 2048, 2048);
+            e_pca9685_set_pwm_with_phase(pca9685, 9, 2304, 2048);
+            e_pca9685_set_pwm_with_phase(pca9685, 10, 2560, 2048);
+            e_pca9685_set_pwm_with_phase(pca9685, 11, 2816, 2048);
+            e_pca9685_set_pwm_with_phase(pca9685, 12, 3072, 2048);
+            e_pca9685_set_pwm_with_phase(pca9685, 13, 3328, 2048);
+            e_pca9685_clear_output(pca9685, 14);
+            e_pca9685_set_output(pca9685, 15);
+
+            fu_bus_management_task(&bm_i2c2);
+            e_pca9685_deamon(&pca9685);
+            break;
+    } 
 }

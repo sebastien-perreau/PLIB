@@ -923,7 +923,7 @@ void fu_bus_management_task(BUS_MANAGEMENT_VAR *var)
     uint8_t i, j;
     uint64_t greater_time = 0, diff_time = 0;
    
-    for(i = 0 ; i < var->number_of_params ; i++)
+    for(i = 0, j = 255 ; i < var->number_of_params ; i++)
     {
         if(var->params[i]->is_running)
         {
@@ -942,7 +942,10 @@ void fu_bus_management_task(BUS_MANAGEMENT_VAR *var)
             }
         }
     }
-    var->params[j]->is_running = true;
+    if (j != 255)
+    {
+        var->params[j]->is_running = true;
+    }
 }
 
 /*******************************************************************************

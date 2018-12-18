@@ -1,99 +1,144 @@
 #ifndef __DEF_UART
 #define	__DEF_UART
 
-#define UART_1_SIZE_TX_FIFO_BUFFER (100)
-#define UART_1_SIZE_RX_FIFO_BUFFER (150)
-
-#define UART_2_SIZE_TX_FIFO_BUFFER (100)
-#define UART_2_SIZE_RX_FIFO_BUFFER (150)
-
-#define UART_3_SIZE_TX_FIFO_BUFFER (100)
-#define UART_3_SIZE_RX_FIFO_BUFFER (150)
-
-#define UART_4_SIZE_TX_FIFO_BUFFER (256)
-#define UART_4_SIZE_RX_FIFO_BUFFER (256)
-
-#define UART_5_SIZE_TX_FIFO_BUFFER (100)
-#define UART_5_SIZE_RX_FIFO_BUFFER (150)
-
-#define UART_6_SIZE_TX_FIFO_BUFFER (100)
-#define UART_6_SIZE_RX_FIFO_BUFFER (150)
-
-#define UART_BAUDRATE_600       600
-#define UART_BAUDRATE_1200      1200
-#define UART_BAUDRATE_2400      2400
-#define UART_BAUDRATE_4800      4800
-#define UART_BAUDRATE_9600      9600
-#define UART_BAUDRATE_14400     14400
-#define UART_BAUDRATE_19200     19200
-#define UART_BAUDRATE_28800     28800
-#define UART_BAUDRATE_38400     38400
-#define UART_BAUDRATE_56000     56000
-#define UART_BAUDRATE_57600     57600
-#define UART_BAUDRATE_115200    115200
-#define UART_BAUDRATE_230400    230400
-#define UART_BAUDRATE_1M        1000000
-
-typedef struct
+typedef enum
 {
-    volatile BYTE *UARTPtr;
-    volatile BYTE *UARTPtrLast;
-    volatile BOOL UARTOverflow;
-    volatile BYTE UARTModeBuffer;
-    volatile WORD UARTStoreData;
-} UART_BUFFER;
+    UART1 = 0,
+    UART2, 
+    UART3, 
+    UART4, 
+    UART5, 
+    UART6,
+    UART_NUMBER_OF_MODULES
+} UART_MODULE;
 
 typedef enum
 {
-    // Erase first data if overflow occurs for transmit buffer.
-    UART_TX_BUFFER_EFD = 0x01,
-    // If overflow occurs don't erase first data for transmit buffer.
-    UART_TX_BUFFER_DEFD = 0x02,
-    // Erase first data if overflow occurs for receive buffer (always have last data if the buffer is not read often).
-    UART_RX_BUFFER_EFD = 0x04,
-    // If overflow occurs don't erase first data (if buffer is full then all new data will not be saved).
-    UART_RX_BUFFER_DEFD = 0x08
-} UART_MODE_BUFFER;
+    UART_BAUDRATE_600           = 600,
+    UART_BAUDRATE_9600          = 9600,
+    UART_BAUDRATE_19200         = 19200,
+    UART_BAUDRATE_115200        = 115200,
+    UART_BAUDRATE_230400        = 230400,
+    UART_BAUDRATE_1M            = 1000000,
+    UART_BAUDRATE_2M            = 2000000
+} UART_BAUDRATE;
 
-void UARTInit(UART_MODULE mUartModule, DWORD mBaudRate, UART_LINE_CONTROL_MODE mUartLineControlMode);
-WORD UARTGetStoreData(UART_MODULE mUartModule);
-void UARTModeBuffer(UART_MODULE mUartModule, UART_MODE_BUFFER mUartModeBuffer);
-void UARTIdleStateTx(UART_MODULE mUartModule, BOOL idleState);
-void UARTIdleStateRx(UART_MODULE mUartModule, BOOL idleState);
-char UARTSendByte(UART_MODULE mUartModule, BYTE mDataByte);
-char UARTReceiveByte(UART_MODULE mUartModule);
+typedef enum
+{
+    UART_ENABLE                 = 0x00000001,
+    UART_DISABLE                = 0x00000000,
+    UART_ENABLE_RX_PIN          = 0x00001000,
+    UART_ENABLE_TX_PIN          = 0x00000400
+} UART_ENABLE_MODE;
 
-void UARTUpdateReceiveBuffer(UART_MODULE mUartModule);
-WORD UARTReadReceiveBuffer(UART_MODULE mUartModule, BYTE *data, WORD length);
-WORD UARTReadReceiveMessage(UART_MODULE mUartModule, BYTE *data, WORD length);
-void UARTAddByteFifoBuffer(UART_MODULE id, BYTE data);
-void UARTAddBytesFifoBuffer(UART_MODULE id, BYTE *data, WORD size);
-BOOL UARTAddPeriodicBytesFifoBuffer(UART_MODULE id, QWORD period, BYTE *data, WORD size);
-#define UARTAddMessageFifoBuffer(a, b, c)   UARTAddBytesFifoBuffer(a, b, c)
-#define UARTAddPeriodicMessageFifoBuffer(a, b, c, d)    UARTAddPeriodicBytesFifoBuffer(a, b, c, d)
-void UARTFlush(UART_MODULE id);
+typedef enum
+{
+    UART_ENABLE_HIGH_SPEED      = 0x00000008,   // MODE register
+    UART_ENABLE_LOOPBACK        = 0x00000040,   // MODE register
+    UART_ENABLE_WAKE_UP         = 0x00000080,   // MODE register
+    UART_RTS_SIMPLEX_MODE       = 0x00000800,   // MODE register
+    UART_ENABLE_IRDA            = 0x00001000,   // MODE register
+    UART_ENABLE_STOP_ON_IDLE    = 0x00002000,   // MODE register
+            
+    UART_RX_POLARITY_LOW        = 0x00000010,   // MODE register
+    UART_RX_POLARITY_HIGH       = 0x00000000,   // MODE register
+    UART_TX_POLARITY_LOW        = 0x20000000,   // STA register
+    UART_TX_POLARITY_HIGH       = 0x00000000,   // STA register
+           
+    UART_ENABLE_PINS_BIT_CLOCK  = 0x00000300,   // MODE register
+    UART_ENABLE_PINS_CTS_RTS    = 0x00000200,   // MODE register
+    UART_ENABLE_PINS_RTS        = 0x00000100,   // MODE register
+    UART_ENABLE_PINS_TX_RX_ONLY = 0x00000000,   // MODE register
+            
+    UART_CONFIG_MASK            = 0x20003bd8
+} UART_CONFIG_MODE;
 
-// ----------------------------------------------------
-// **** MACRO AND STRUCTURE FOR THE SERIAL MESSAGE ****
+typedef enum
+{
+    UART_DATA_SIZE_8_BITS       = 0x00000000,
+    UART_DATA_SIZE_9_BITS       = 0x00000006,
+    UART_PARITY_ODD             = 0x00000004,
+    UART_PARITY_EVEN            = 0x00000002,
+    UART_PARITY_NONE            = 0x00000000,
+    UART_STOP_BITS_2            = 0x00000001,
+    UART_STOP_BITS_1            = 0x00000000,
+    UART_LINE_CONTROL_MASK      = 0x00000007
+} UART_LINE_CONTROL_MODE;
 
-#define SYNC_FIELD      0x1717
+typedef enum
+{
+    UART_INTERRUPT_ON_TX_BUFFER_EMPTY   = 0x00008000,
+    UART_INTERRUPT_ON_TX_DONE           = 0x00004000,
+    UART_INTERRUPT_ON_TX_NOT_FULL       = 0x00000000,
+    UART_INTERRUPT_ON_RX_FULL           = 0x000000C0,
+    UART_INTERRUPT_ON_RX_3_QUARTER_FULL = 0x00000080,
+    UART_INTERRUPT_ON_RX_HALF_FULL      = 0x00000040,
+    UART_INTERRUPT_ON_RX_NOT_EMPTY      = 0x00000000,
+    UART_FIFO_MASK                      = 0x0000c0c0
+} UART_FIFO_MODE;
+
+typedef enum
+{
+    UART_ENABLE_ADDRESS_DETECTION       = 0x00100000,
+    UART_DISABLE_ADDRESS_DETECTION      = 0x00000000,
+    UART_ADDRESS_DETECTION_MASK         = 0x001f0000
+} UART_ADDRESS_DETECTION;
+
+#define UART_STD_PARAMS         UART_ENABLE | UART_ENABLE_RX_PIN | UART_ENABLE_TX_PIN,                                                      \
+                                UART_ENABLE_HIGH_SPEED | UART_RX_POLARITY_HIGH | UART_TX_POLARITY_HIGH | UART_ENABLE_PINS_TX_RX_ONLY,       \
+                                UART_DATA_SIZE_8_BITS | UART_PARITY_NONE | UART_STOP_BITS_1,                                                \
+                                UART_INTERRUPT_ON_TX_DONE | UART_INTERRUPT_ON_RX_NOT_EMPTY,                                                 \
+                                0x00 | UART_DISABLE_ADDRESS_DETECTION
 
 typedef struct
 {
-    UINT16  sync;
-    BYTE    id;
-    UINT16  counter;
-    BYTE    dataLength;
-    BYTE    dataBuffer[255];
-    BYTE    checksum;
-    QWORD   tick;
-}MESSAGE_HEADER;
+	volatile uint32_t	MODE;
+	volatile uint32_t	MODECLR;
+	volatile uint32_t	MODESET;
+	volatile uint32_t	MODEINV;
+    
+	volatile uint32_t	STA;
+	volatile uint32_t	STACLR;
+	volatile uint32_t	STASET;
+	volatile uint32_t	STAINV;
+    
+	volatile uint32_t	TX;
+	volatile uint32_t	TXCLR;
+	volatile uint32_t	TXSET;
+	volatile uint32_t	TXINV;
+    
+    volatile uint32_t	RX;
+	volatile uint32_t	RXCLR;
+	volatile uint32_t	RXSET;
+	volatile uint32_t	RXINV;
+    
+    volatile uint32_t	BRG;
+	volatile uint32_t	BRGCLR;
+	volatile uint32_t	BRGSET;
+	volatile uint32_t	BRGINV;
+} UART_REGISTERS;
 
-#define INIT_MESSAGE(id, length)            {0x1717, id, 0x0000, length, {0}, 0x00, 0}
-
-void UARTAddPeriodicMessageTypeFifoBuffer(UART_MODULE id, QWORD period, MESSAGE_HEADER *frame);
-BYTE UARTReadMessageTypeWithIdleState(UART_MODULE mUartModule, MESSAGE_HEADER *message);
-BYTE UARTCalcCheksumForMessageType(MESSAGE_HEADER frame);
-BYTE UARTIsMessageTypeValid(MESSAGE_HEADER *frame);
+void uart_init(     UART_MODULE id, 
+                    serial_event_handler_t evt_handler,
+                    UART_BAUDRATE baudrate,
+                    UART_ENABLE_MODE enable,
+                    UART_CONFIG_MODE config_mode, 
+                    UART_LINE_CONTROL_MODE control_mode,
+                    UART_FIFO_MODE fifo_mode,
+                    UART_ADDRESS_DETECTION address_detection);
+void uart_enable(UART_MODULE id, UART_ENABLE_MODE enable_mode);
+void uart_set_params(UART_MODULE id, UART_CONFIG_MODE config_mode);
+void uart_set_line_control(UART_MODULE id, UART_LINE_CONTROL_MODE control_mode);
+void uart_set_fifo(UART_MODULE id, UART_FIFO_MODE fifo_mode);
+void uart_set_adress_detection(UART_MODULE id, uint8_t address, UART_ADDRESS_DETECTION address_detection);
+void uart_set_baudrate(UART_MODULE id, uint32_t baudrate);
+uint32_t uart_get_baudrate(UART_MODULE id);
+bool uart_transmission_has_completed(UART_MODULE id);
+bool uart_is_tx_ready(UART_MODULE id);
+bool uart_is_rx_data_available(UART_MODULE id);
+bool uart_send_break(UART_MODULE id);
+bool uart_send_data(UART_MODULE id, uint16_t data);
+bool uart_get_data(UART_MODULE id, uint16_t *p_data);
+void uart_interrupt_handler(UART_MODULE id, IRQ_EVENT_TYPE evt_type, uint32_t data);
 
 #endif

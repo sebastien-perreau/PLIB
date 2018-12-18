@@ -9,7 +9,7 @@
                      projectFiles="true">
         <itemPath>../_Experimental/_EXAMPLES_.h</itemPath>
         <itemPath>../_Experimental/_LOG.h</itemPath>
-        <itemPath>../_Experimental/s21_uart_exp.h</itemPath>
+        <itemPath>../_Experimental/e_pca9685.h</itemPath>
       </logicalFolder>
       <logicalFolder name="_External_Components"
                      displayName="_External_Components"
@@ -47,6 +47,7 @@
         <itemPath>../_Low_Level_Driver/s35_ethernet_OSI-5_ApplicationLayer.h</itemPath>
         <itemPath>../_Low_Level_Driver/s35_ethernet_TCPIP.h</itemPath>
         <itemPath>../_Low_Level_Driver/s12_ports.h</itemPath>
+        <itemPath>../_Low_Level_Driver/s21_uart.h</itemPath>
       </logicalFolder>
       <itemPath>../defines.h</itemPath>
       <itemPath>../PLIB.h</itemPath>
@@ -63,7 +64,7 @@
                      projectFiles="true">
         <itemPath>../_Experimental/_EXAMPLES_.c</itemPath>
         <itemPath>../_Experimental/_LOG.c</itemPath>
-        <itemPath>../_Experimental/s21_uart_exp.c</itemPath>
+        <itemPath>../_Experimental/e_pca9685.c</itemPath>
       </logicalFolder>
       <logicalFolder name="_External_Components"
                      displayName="_External_Components"
@@ -101,6 +102,7 @@
         <itemPath>../_Low_Level_Driver/s35_ethernet_OSI-5_ApplicationLayer.c</itemPath>
         <itemPath>../_Low_Level_Driver/s35_ethernet_TCPIP.c</itemPath>
         <itemPath>../_Low_Level_Driver/s12_ports.c</itemPath>
+        <itemPath>../_Low_Level_Driver/s21_uart.c</itemPath>
       </logicalFolder>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"

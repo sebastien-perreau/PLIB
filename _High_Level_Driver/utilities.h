@@ -157,15 +157,15 @@ typedef struct
     uint64_t tick;
 } AVERAGE_VAR;
 
-#define AVERAGE_INSTANCE(_adc_module, _buffer, _period)     \
-{                                                           \
-    .adc_module = _adc_module,                              \
-    .buffer = { _buffer, sizeof(_buffer)/sizeof(float) },   \
-    .average = 0.0,                                         \
-    .sum_of_buffer = 0.0,                                   \
-    .index_buffer = 0,                                      \
-    .period = _period,                                      \
-    .tick = 0,                                              \
+#define AVERAGE_INSTANCE(_adc_module, _buffer, _period)         \
+{                                                               \
+    .adc_module = _adc_module,                                  \
+    .buffer = { _buffer, sizeof(_buffer)/sizeof(float), 0 },    \
+    .average = 0.0,                                             \
+    .sum_of_buffer = 0.0,                                       \
+    .index_buffer = 0,                                          \
+    .period = _period,                                          \
+    .tick = 0,                                                  \
 }
 #define AVERAGE_DEF(_name, _adc_module, _number_of_acquisition, _period)        \
 static float _name ## _buffer_ram_allocation[_number_of_acquisition] = {0.0};   \

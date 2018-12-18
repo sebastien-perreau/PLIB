@@ -20,6 +20,7 @@ const TIMER_REGISTERS * TimerModules[] =
     (TIMER_REGISTERS *)_TMR4_BASE_ADDRESS,
     (TIMER_REGISTERS *)_TMR5_BASE_ADDRESS
 };
+static basic_event_handler_t timer_event_handler[TIMER_NUMBER_OF_MODULES] = {NULL};
 
 /*******************************************************************************
  * Function: 
@@ -30,6 +31,7 @@ const TIMER_REGISTERS * TimerModules[] =
  * 
  * Parameters:
  *      id: The desire TIMER_MODULE.
+ *      evt_handler: The handler (function) to call when an interruption occurs.
  *      config: The desire timer configuration (TCON register).
  *      period_us: Set the period in micro-seconds for the timer. Time before 
  *                  back to zero and/or interrupt generation.
@@ -40,15 +42,15 @@ const TIMER_REGISTERS * TimerModules[] =
  * Example:
  *      See. cfg_pwm() in "config.c"
  ******************************************************************************/
-void timer_init_2345_us(TIMER_MODULE id, uint32_t config, double period_us)
+void timer_init_2345_us(TIMER_MODULE id, basic_event_handler_t evt_handler, uint32_t config, uint32_t period_us)
 {
-    TIMER_REGISTERS * p_timer = (TIMER_REGISTERS *)TimerModules[id];
-    uint32_t v_PRx = 100000;
+    TIMER_REGISTERS * p_timer = (TIMER_REGISTERS *) TimerModules[id];
+    uint32_t v_pr = 100000;
     uint16_t v_prescale = 1;
 
-    while(v_PRx > 65535)
+    while(v_pr > 65535)
     {
-        v_PRx = (double)((period_us * (PERIPHERAL_FREQ / 1000000L)) / v_prescale);
+        v_pr = (uint32_t)((period_us * (PERIPHERAL_FREQ / 1000000L)) / v_prescale);
         if(v_prescale == 1) 
         {
             v_prescale = 2;
@@ -94,11 +96,13 @@ void timer_init_2345_us(TIMER_MODULE id, uint32_t config, double period_us)
             break;
         }
     }
-
-    p_timer->TCON    = (config)&~(TMR_ON);
-    p_timer->TMR     = 0x0000;
-    p_timer->PR      = (v_PRx);
-    p_timer->TCON    = (config)&(TMR_ON);
+    
+    timer_event_handler[id] = evt_handler;
+    
+    p_timer->TCONCLR    = TMR_ON;
+    p_timer->TMR        = 0x0000;
+    p_timer->PR         = v_pr;
+    p_timer->TCONSET    = config;
 }
 
 /*******************************************************************************
@@ -119,7 +123,7 @@ void timer_init_2345_us(TIMER_MODULE id, uint32_t config, double period_us)
  ******************************************************************************/
 double timer_get_period_us(TIMER_MODULE id)
 {
-    TIMER_REGISTERS * p_timer = (TIMER_REGISTERS *)TimerModules[id];
+    TIMER_REGISTERS * p_timer = (TIMER_REGISTERS *) TimerModules[id];
 
     if(id == TIMER1)
     {
@@ -135,5 +139,30 @@ double timer_get_period_us(TIMER_MODULE id)
         {
             return (double)((p_timer->PR*256.0)*(1000000/PERIPHERAL_FREQ));
         }
+    }
+}
+
+/*******************************************************************************
+ * Function: 
+ *      void timer_interrupt_handler(TIMER_MODULE id)
+ * 
+ * Description:
+ *      This routine is called when an interruption occured. This interrupt 
+ *      handler calls the user _event_handler (if existing) otherwise do nothing.
+ * 
+ * Parameters:
+ *      id: The TIMER module you want to use.
+ * 
+ * Return:
+ *      none
+ * 
+ * Example:
+ *      none
+ ******************************************************************************/
+void timer_interrupt_handler(TIMER_MODULE id)
+{
+    if (timer_event_handler[id] != NULL)
+    {
+        (*timer_event_handler[id])(id);
     }
 }

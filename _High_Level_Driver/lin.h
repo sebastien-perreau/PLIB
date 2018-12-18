@@ -89,17 +89,16 @@ typedef struct
 
 #endif
 
-void LINInit(EXP_UART_MODULE id, BYTE version);
+void LINInit(UART_MODULE id, BYTE version);
 BYTE LINSetIdWithParity(BYTE id);
-LIN_STATUS_BITS *LINGetStatusBitsAdress(EXP_UART_MODULE mUartModule);
-LIN_STATE_BITS *LINGetStateBitsAdress(EXP_UART_MODULE mUartModule);
-LIN_ERROR_BITS *LINGetErrorBitsAdress(EXP_UART_MODULE mUartModule);
-LIN_FRAME *LINGetFrameAdress(EXP_UART_MODULE mUartModule);
-BYTE LINGetVersion(EXP_UART_MODULE mUartModule);
-WORD LINGetCheksum(EXP_UART_MODULE mUartModule);
-void LINCleanup(EXP_UART_MODULE mUartModule);
-void LINFlush(EXP_UART_MODULE mUartModule, BOOL requestType);
-void LINTimeUpdate(EXP_UART_MODULE mUartModule);
-void LINInterrupt(EXP_UART_MODULE mUartModule);
-void LINDeamonMaster(EXP_UART_MODULE mUartModule, BYTE UartDataReceive);
-BOOL LINIsCheksumCorrect(EXP_UART_MODULE mUartModule);
+LIN_STATUS_BITS *LINGetStatusBitsAdress(UART_MODULE mUartModule);
+LIN_STATE_BITS *LINGetStateBitsAdress(UART_MODULE mUartModule);
+LIN_ERROR_BITS *LINGetErrorBitsAdress(UART_MODULE mUartModule);
+LIN_FRAME *LINGetFrameAdress(UART_MODULE mUartModule);
+BYTE LINGetVersion(UART_MODULE mUartModule);
+WORD LINGetCheksum(UART_MODULE mUartModule);
+void LINCleanup(UART_MODULE mUartModule);
+void LINFlush(UART_MODULE mUartModule, BOOL requestType);
+void LINTimeUpdate(UART_MODULE mUartModule);
+void LINDeamonMaster(UART_MODULE mUartModule, BYTE UartDataReceive);
+BOOL LINIsCheksumCorrect(UART_MODULE mUartModule);

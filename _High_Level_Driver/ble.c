@@ -17,17 +17,36 @@ static void _write_reset(uint8_t *buffer);
 
 static uint8_t vsd_outgoing_message_uart(p_function ptr);
 
+static void ble_event_handler(uint8_t id, IRQ_EVENT_TYPE evt_type, uint32_t data)
+{
+    switch (evt_type)
+    {
+        case IRQ_UART_ERROR:
+            
+            break;
+            
+        case IRQ_UART_RX:
+            
+            p_ble->uart.receive_in_progress = true;
+            p_ble->uart.tick = mGetTick();
+            p_ble->uart.buffer[p_ble->uart.index] = (uint8_t) (data);
+            p_ble->uart.index++;
+            break;
+            
+        case IRQ_UART_TX:
+            
+            break;
+            
+    }
+}
+
 void ble_init(ble_params_t * p_ble_params)
 {   
     DmaChnOpen(DMA_CHANNEL2, DMA_CHN_PRI0, DMA_OPEN_MATCH);
     DmaChnSetEvEnableFlags(DMA_CHANNEL2, DMA_EV_BLOCK_DONE);	// enable the transfer done interrupt, when all buffer transferred
-    IRQInit(IRQ_DMA2, IRQ_ENABLED, IRQ_PRIORITY_LEVEL_3, IRQ_SUB_PRIORITY_LEVEL_1);
     DmaChnSetEventControl(DMA_CHANNEL2, DMA_EV_START_IRQ(_UART4_TX_IRQ));
     
-    exp_uart_init(EXP_UART4, EXP_UART_BAUDRATE_1M, EXP_UART_STD_PARAMS);
-    IRQInit(IRQ_U1E + EXP_UART4, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_5, IRQ_SUB_PRIORITY_LEVEL_1);
-    IRQInit(IRQ_U1TX + EXP_UART4, IRQ_DISABLED, IRQ_PRIORITY_LEVEL_5, IRQ_SUB_PRIORITY_LEVEL_1);
-    IRQInit(IRQ_U1RX + EXP_UART4, IRQ_ENABLED, IRQ_PRIORITY_LEVEL_5, IRQ_SUB_PRIORITY_LEVEL_1);
+    uart_init(UART4, ble_event_handler, UART_BAUDRATE_1M, UART_STD_PARAMS);
     
     p_ble = p_ble_params;
     p_ble->flags.set_name = 1;
@@ -37,15 +56,6 @@ void __ISR(_DMA_2_VECTOR, IPL3SOFT) Dma2Handler(void)
 {
     p_ble->uart.dma_tx_in_progress = false;
     irq_clr_flag(IRQ_DMA2);
-}
-
-void __ISR(_UART_4_VECTOR, IPL5SOFT) Uart4Handler(void)
-{
-    p_ble->uart.receive_in_progress = true;
-    p_ble->uart.tick = mGetTick();
-    p_ble->uart.buffer[p_ble->uart.index] = (uint8_t) (U4RXREG);
-    p_ble->uart.index++;
-    irq_clr_flag(IRQ_U4RX);
 }
 
 void ble_stack_tasks()
