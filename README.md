@@ -1,6 +1,6 @@
-# PLIB_21812
+# PROTOTYPE LIBRARY
 
-**Prototype Library ver. *December 18***
+**Last release ver. *December 18***
 
 ## HARDWARE BASED ON:
 
