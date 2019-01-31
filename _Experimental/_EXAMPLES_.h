@@ -17,5 +17,6 @@ void _EXAMPLE_LOG(ACQUISITIONS_VAR var);
 void _EXAMPLE_WS2812B_MULTI_SEGMENTS();
 void _EXAMPLE_UART();
 void _EXAMPLE_PCA9685();
+void _EXAMPLE_BLE(ble_params_t * p_ble);
 
 #endif

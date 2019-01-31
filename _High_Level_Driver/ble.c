@@ -10,10 +10,15 @@
 
 static ble_params_t * p_ble;
 
-static void _write_name(uint8_t *buffer);
-static void _read_version(uint8_t *buffer);
-static void _read_sdk_version(uint8_t *buffer);
-static void _write_reset(uint8_t *buffer);
+static void _pa_lna(uint8_t *buffer);
+static void _led_status(uint8_t *buffer);
+static void _name(uint8_t *buffer);
+static void _version(uint8_t *buffer);
+static void _adv_interval(uint8_t *buffer);
+static void _adv_timeout(uint8_t *buffer);
+static void _reset(uint8_t *buffer);
+static void _buffer(uint8_t *buffer);
+static void _scenario(uint8_t *buffer);
 
 static uint8_t vsd_outgoing_message_uart(p_function ptr);
 
@@ -49,7 +54,13 @@ void ble_init(ble_params_t * p_ble_params)
     uart_init(UART4, ble_event_handler, UART_BAUDRATE_1M, UART_STD_PARAMS);
     
     p_ble = p_ble_params;
+    
+    p_ble->flags.pa_lna = 1;
+    p_ble->flags.led_status = 1;
     p_ble->flags.set_name = 1;
+    p_ble->flags.get_version = 1;
+    p_ble->flags.adv_interval = 1;
+    p_ble->flags.adv_timeout = 1;
 }
 
 void __ISR(_DMA_2_VECTOR, IPL3SOFT) Dma2Handler(void)
@@ -81,10 +92,7 @@ void ble_stack_tasks()
             {
                 p_ble->uart.message_type = UART_NACK_MESSAGE;
             }
-            else if (	(p_ble->uart.index > 5) && \
-                        ((p_ble->uart.buffer[1] == BLE_TYPE_WRITE) || \
-                        (p_ble->uart.buffer[1] == BLE_TYPE_READ) || \
-                        (p_ble->uart.buffer[1] == BLE_TYPE_DIRECT_READ)))
+            else if (	(p_ble->uart.index > 5) && (p_ble->uart.buffer[1] == 'N'))
             {
                 p_ble->uart.message_type = UART_NEW_MESSAGE;
             }
@@ -122,7 +130,7 @@ void ble_stack_tasks()
         }
         else
         {
-            p_ble->incoming_message_uart.id = BLE_ID_RESERVED_;
+            p_ble->incoming_message_uart.id = 0x00;
             DmaChnSetTxfer(DMA_CHANNEL2, "NACK", (void*)&U4TXREG, 4, 1, 1);
             DmaChnStartTxfer(DMA_CHANNEL2, DMA_WAIT_NOT, 0);
             p_ble->uart.dma_tx_in_progress = true;
@@ -131,41 +139,30 @@ void ble_stack_tasks()
        
         switch (p_ble->incoming_message_uart.id)
         {
-            case BLE_ID_DEVICE_VSD_VERSION:
-                if (p_ble->incoming_message_uart.type == BLE_TYPE_READ)
+            case ID_GET_VERSION:
+                for (i = 0 ; i < p_ble->incoming_message_uart.length ; i++)
                 {
-                    for (i = 0 ; i < p_ble->incoming_message_uart.length ; i++)
-                    {
-                        p_ble->infos.vsd_version[i] = p_ble->incoming_message_uart.data[i];
-                    }
+                    p_ble->infos.vsd_version[i] = p_ble->incoming_message_uart.data[i];
                 }
+                p_ble->infos.vsd_version[i] = '\0';
                 break;
                 
-            case BLE_ID_DEVICE_NORDIC_SDK_VERSION:
-                if (p_ble->incoming_message_uart.type == BLE_TYPE_READ)
-                {
-                    for (i = 0 ; i < p_ble->incoming_message_uart.length ; i++)
-                    {
-                        p_ble->infos.nordic_sdk_version[i] = p_ble->incoming_message_uart.data[i];
-                    }
-                }
+            case ID_CHAR_BUFFER:
+                memcpy(p_ble->service.buffer.in_data, p_ble->incoming_message_uart.data, p_ble->incoming_message_uart.length);
+                p_ble->service.buffer.in_length = p_ble->incoming_message_uart.length;
+                p_ble->service.buffer.in_is_updated = true;
                 break;
                 
-            case BLE_ID_SERVICE_CHAR_BUFFER:
-                if (p_ble->incoming_message_uart.type == BLE_TYPE_DIRECT_READ)
-                {
-                    memcpy(p_ble->service.buffer.data, p_ble->incoming_message_uart.data, p_ble->incoming_message_uart.length);
-                    p_ble->service.buffer.length = p_ble->incoming_message_uart.length;
-                    p_ble->service.buffer.counter++;
-                }
+            case ID_CHAR_SCENARIO:
+                p_ble->service.scenario.in_index = p_ble->incoming_message_uart.data[0];
+                p_ble->service.scenario.in_is_updated = true;
                 break;
                 
-            case BLE_ID_SERVICE_CHAR_SCENARIO:
-                if (p_ble->incoming_message_uart.type == BLE_TYPE_DIRECT_READ)
-                {
-                    p_ble->service.scenario.index = p_ble->incoming_message_uart.data[0];
-                    p_ble->service.scenario.counter++;
-                }
+            case ID_SOFTWARE_RESET:
+                if ((p_ble->incoming_message_uart.length == 1) && ((p_ble->incoming_message_uart.data[0] == RESET_ALL) || (p_ble->incoming_message_uart.data[0] == RESET_PIC32)))
+				{
+					p_ble->flags.exec_reset = true;
+				}
                 break;
 
             default:
@@ -176,45 +173,118 @@ void ble_stack_tasks()
     
     if (p_ble->flags.w > 0)
     {
-        if (p_ble->flags.set_name)
+        if (p_ble->flags.pa_lna)
         {
-            if (!vsd_outgoing_message_uart(_write_name))
+            if (!vsd_outgoing_message_uart(_pa_lna))
+            {
+                p_ble->flags.pa_lna = 0;
+            }
+        }
+        else if (p_ble->flags.led_status)
+        {
+            if (!vsd_outgoing_message_uart(_led_status))
+            {
+                p_ble->flags.led_status = 0;
+            }
+        }
+        else if (p_ble->flags.set_name)
+        {
+            if (!vsd_outgoing_message_uart(_name))
             {
                 p_ble->flags.set_name = 0;
             }
         }
-        else if (p_ble->flags.get_vsd_version)
+        else if (p_ble->flags.get_version)
         {
-            if (!vsd_outgoing_message_uart(_read_version))
+            if (!vsd_outgoing_message_uart(_version))
             {
-                p_ble->flags.get_vsd_version = 0;
+                p_ble->flags.get_version = 0;
             }
         }
-        else if (p_ble->flags.get_nordic_sdk_version)
+        else if (p_ble->flags.adv_interval)
         {
-            if (!vsd_outgoing_message_uart(_read_sdk_version))
+            if (!vsd_outgoing_message_uart(_adv_interval))
             {
-                p_ble->flags.get_nordic_sdk_version = 0;
+                p_ble->flags.adv_interval = 0;
             }
         }
-        else if (p_ble->flags.exe_send_reset)
+        else if (p_ble->flags.adv_timeout)
         {
-            if (!vsd_outgoing_message_uart(_write_reset))
+            if (!vsd_outgoing_message_uart(_adv_timeout))
+            {
+                p_ble->flags.adv_timeout = 0;
+            }
+        }
+        else if (p_ble->flags.send_reset)
+        {
+            if (!vsd_outgoing_message_uart(_reset))
+            {
+                if ((p_ble->params.reset_type == RESET_ALL) || (p_ble->params.reset_type == RESET_PIC32))
+                {
+                    SoftReset();
+                }
+            }
+        }
+        else if (p_ble->flags.exec_reset)
+        {
+            if (!p_ble->uart.transmit_in_progress)
             {
                 SoftReset();
+            }
+        }
+        else if (p_ble->flags.send_buffer)
+        {
+            if (!vsd_outgoing_message_uart(_buffer))
+            {
+                p_ble->flags.send_buffer = 0;
+            }
+        }
+        else if (p_ble->flags.send_scenario)
+        {
+            if (!vsd_outgoing_message_uart(_scenario))
+            {
+                p_ble->flags.send_scenario = 0;
             }
         }
     }
     
 }
 
-static void _write_name(uint8_t *buffer)
+static void _pa_lna(uint8_t *buffer)
 {
     uint8_t i = 0;
 	uint16_t crc = 0;
 
-	buffer[0] = BLE_ID_DEVICE_NAME;
-	buffer[1] = BLE_TYPE_WRITE;
+	buffer[0] = ID_PA_LNA;
+	buffer[1] = 'W';
+    buffer[2] = 1;
+    buffer[3] = p_ble->params.pa_lna_enable;
+	crc = fu_crc_16_ibm(buffer, buffer[2]+3);
+	buffer[buffer[2]+3] = (crc >> 8) & 0xff;
+	buffer[buffer[2]+4] = (crc >> 0) & 0xff;
+}
+
+static void _led_status(uint8_t *buffer)
+{
+    uint8_t i = 0;
+	uint16_t crc = 0;
+
+	buffer[0] = ID_LED_STATUS;
+	buffer[1] = 'W';
+    buffer[2] = 1;
+    buffer[3] = p_ble->params.led_status_enable;
+	crc = fu_crc_16_ibm(buffer, buffer[2]+3);
+	buffer[buffer[2]+3] = (crc >> 8) & 0xff;
+	buffer[buffer[2]+4] = (crc >> 0) & 0xff;
+}
+
+static void _name(uint8_t *buffer)
+{
+    uint8_t i = 0;
+	uint16_t crc = 0;
+
+	buffer[0] = ID_SET_NAME;
+	buffer[1] = 'W';
 	
 	for (i = 0 ; i < 20 ; i++)
     {
@@ -231,38 +301,81 @@ static void _write_name(uint8_t *buffer)
 	buffer[buffer[2]+4] = (crc >> 0) & 0xff;
 }
 
-static void _read_version(uint8_t *buffer)
+static void _version(uint8_t *buffer)
 {
 	uint16_t crc = 0;
 
-	buffer[0] = BLE_ID_DEVICE_VSD_VERSION;
-	buffer[1] = BLE_TYPE_READ;
-	buffer[2] = 0;
+	buffer[0] = ID_GET_VERSION;
+	buffer[1] = 'W';
+	buffer[2] = 1;
+    buffer[3] = 0x00;
 	crc = fu_crc_16_ibm(buffer, buffer[2]+3);
 	buffer[buffer[2]+3] = (crc >> 8) & 0xff;
 	buffer[buffer[2]+4] = (crc >> 0) & 0xff;
 }
 
-static void _read_sdk_version(uint8_t *buffer)
+static void _adv_interval(uint8_t *buffer)
 {
 	uint16_t crc = 0;
 
-	buffer[0] = BLE_ID_DEVICE_NORDIC_SDK_VERSION;
-	buffer[1] = BLE_TYPE_READ;
-	buffer[2] = 0;
+	buffer[0] = ID_ADV_INTERVAL;
+	buffer[1] = 'W';
+	buffer[2] = 2;
+    buffer[3] = (p_ble->params.preferred_gap_params.adv_interval >> 8) & 0xff;
+    buffer[4] = (p_ble->params.preferred_gap_params.adv_interval >> 0) & 0xff;
 	crc = fu_crc_16_ibm(buffer, buffer[2]+3);
 	buffer[buffer[2]+3] = (crc >> 8) & 0xff;
 	buffer[buffer[2]+4] = (crc >> 0) & 0xff;
 }
 
-static void _write_reset(uint8_t *buffer)
+static void _adv_timeout(uint8_t *buffer)
 {
 	uint16_t crc = 0;
 
-	buffer[0] = BLE_ID_DEVICE_RESET;
-	buffer[1] = BLE_TYPE_WRITE;
+	buffer[0] = ID_ADV_TIMEOUT;
+	buffer[1] = 'W';
+	buffer[2] = 2;
+    buffer[3] = (p_ble->params.preferred_gap_params.adv_timeout >> 8) & 0xff;
+    buffer[4] = (p_ble->params.preferred_gap_params.adv_timeout >> 0) & 0xff;
+	crc = fu_crc_16_ibm(buffer, buffer[2]+3);
+	buffer[buffer[2]+3] = (crc >> 8) & 0xff;
+	buffer[buffer[2]+4] = (crc >> 0) & 0xff;
+}
+
+static void _reset(uint8_t *buffer)
+{
+	uint16_t crc = 0;
+
+	buffer[0] = ID_SOFTWARE_RESET;
+	buffer[1] = 'W';
     buffer[2] = 1;
-    buffer[3] = 23;
+    buffer[3] = RESET_ALL;
+	crc = fu_crc_16_ibm(buffer, buffer[2]+3);
+	buffer[buffer[2]+3] = (crc >> 8) & 0xff;
+	buffer[buffer[2]+4] = (crc >> 0) & 0xff;
+}
+
+static void _buffer(uint8_t *buffer)
+{
+	uint16_t crc = 0;
+
+	buffer[0] = ID_CHAR_BUFFER;
+	buffer[1] = 'W';
+	buffer[2] = p_ble->service.buffer.out_length;
+    memcpy(&buffer[3], p_ble->service.buffer.out_data, p_ble->service.buffer.out_length);
+	crc = fu_crc_16_ibm(buffer, buffer[2]+3);
+	buffer[buffer[2]+3] = (crc >> 8) & 0xff;
+	buffer[buffer[2]+4] = (crc >> 0) & 0xff;
+}
+
+static void _scenario(uint8_t *buffer)
+{
+	uint16_t crc = 0;
+
+	buffer[0] = ID_CHAR_SCENARIO;
+	buffer[1] = 'W';
+	buffer[2] = 1;
+    buffer[3] = p_ble->service.scenario.out_index;
 	crc = fu_crc_16_ibm(buffer, buffer[2]+3);
 	buffer[buffer[2]+3] = (crc >> 8) & 0xff;
 	buffer[buffer[2]+4] = (crc >> 0) & 0xff;
@@ -277,6 +390,9 @@ static uint8_t vsd_outgoing_message_uart(p_function ptr)
 	{
 
         case 0:
+            sm.index++;
+            sm.tick = mGetTick();
+        case 1:
             
             if (!p_ble->uart.transmit_in_progress && !p_ble->uart.receive_in_progress)
             {
@@ -285,7 +401,22 @@ static uint8_t vsd_outgoing_message_uart(p_function ptr)
             }
             break;
             
-		case 1:
+        case 2:
+            if (mTickCompare(sm.tick) >= TICK_400US)
+        	{
+        		if (!p_ble->uart.transmit_in_progress && !p_ble->uart.receive_in_progress)
+				{
+					sm.index++;
+					sm.tick = mGetTick();
+				}
+        		else
+        		{
+        			sm.index = 1;
+        		}
+        	}
+            break;
+            
+		case 3:
             
             (*ptr)(buffer);
 
@@ -297,7 +428,7 @@ static uint8_t vsd_outgoing_message_uart(p_function ptr)
 			sm.tick = mGetTick();
 			break;
 
-		case 2:
+		case 4:
 
             if (!p_ble->uart.transmit_in_progress)
             {
@@ -307,7 +438,7 @@ static uint8_t vsd_outgoing_message_uart(p_function ptr)
             }
 			break;
 
-		case 3:
+		case 5:
 
             if (p_ble->uart.message_type == UART_ACK_MESSAGE)
             {
@@ -317,11 +448,11 @@ static uint8_t vsd_outgoing_message_uart(p_function ptr)
             else if (p_ble->uart.message_type == UART_NACK_MESSAGE)
             {
                 p_ble->uart.message_type = UART_NO_MESSAGE;
-                sm.index = 1;
+                sm.index = 3;
             }
             else if (mTickCompare(sm.tick) >= TICK_10MS)
             {
-                sm.index = 1;
+                sm.index = 3;
             }
 			break;
 

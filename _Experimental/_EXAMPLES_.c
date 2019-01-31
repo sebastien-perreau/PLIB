@@ -392,7 +392,7 @@ void _EXAMPLE_LOG(ACQUISITIONS_VAR var)
                 case 6:
                     if (mTickCompare(sm_log.tick) >= TICK_200MS)
                     {
-                    LOG_SHORT("Char log - %c %c %c", 'a', 'B', 'c');
+                        LOG_SHORT("Char log - %c %c %c", 'a', 'B', 'c');
                         sm_log.index++;
                         sm_log.tick = mGetTick();
                     }
@@ -773,6 +773,43 @@ void _EXAMPLE_PCA9685()
 
             fu_bus_management_task(&bm_i2c2);
             e_pca9685_deamon(&pca9685);
+            break;
+    } 
+}
+
+void _EXAMPLE_BLE(ble_params_t * p_ble)
+{
+    static state_machine_t sm_example = {0};
+    
+    switch (sm_example.index)
+    {
+        case _SETUP:          
+            // Declare ble variable "ble_params" and enable it with cfg_ble(ENABLE, &ble_params)
+            sm_example.index = _MAIN;
+            break;
+            
+        case _MAIN:
+            // CENTRAL write a scenario to the PERIPHERAL
+            mUpdateLedStatusD3(p_ble->service.scenario.in_index);
+            if (p_ble->service.scenario.in_is_updated)
+            {
+                p_ble->service.scenario.in_is_updated = false;
+                if (mGetIO(LED2))
+                {
+                    mUpdateLedStatusD2(OFF);
+                }
+                else
+                {
+                    mUpdateLedStatusD2(ON);
+                }
+            }
+            // Notify the CENTRAL by using a "scenario object"
+            if (mTickCompare(sm_example.tick) >= TICK_1S)
+            {
+                sm_example.tick = mGetTick();
+                p_ble->service.scenario.out_index++;
+                p_ble->flags.send_scenario = true;
+            }
             break;
     } 
 }
